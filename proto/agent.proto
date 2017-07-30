@@ -1,0 +1,26 @@
+syntax = "proto3";
+package pbgo;
+import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
+
+// 玩家连接
+message AgentConnect {
+    actor.PID Sender = 1;
+}
+
+message AgentConnected {
+    string Message = 1;
+    actor.PID Server = 2;
+}
+
+// 转发到服务器
+message AgentForwardToSvr {
+    string ServerName = 1;
+    string Uid = 2;
+    bytes Body = 3;
+}
+
+// 转发到客户端
+message AgentForwardToCli {
+    string Uid = 1;
+    bytes Body = 2;
+}
