@@ -2,9 +2,10 @@ syntax = "proto3";
 package pbgo;
 import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
 
-// 玩家连接
+// 节点连接
 message AgentConnect {
-    actor.PID Sender = 1;
+    actor.PID Sender = 1; // 谁连接了
+    string ServerName = 2; // 哪个服务器
 }
 
 message AgentConnected {

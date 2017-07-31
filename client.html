@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tank</title>
+    <script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://unpkg.com/vue/dist/vue.js"></script>
+</head>
+<body>
+<div id="app">
+
+</div>
+</body>
+
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            message: 'Hello Vue!',
+            items: [{'key': 1, 'class': 'tank', pos: {x: 100, y: 100}, id: '99'}],
+        },
+        methods: {
+        }
+    })
+
+    document.onkeydown = function (event) {
+
+    };
+
+    document.onkeyup = function (event) {
+
+    };
+
+    var ws = new WebSocket("ws://localhost:8081/");
+    ws.onmessage = function (e) {
+        app.message = e.data
+        var data = JSON.parse(e.data)
+        console.log(data)
+    }
+    var uid = window.location.hash.substr(1)
+    console.log(uid)
+
+    setTimeout(function () {
+        var s = JSON.stringify({Cmd: 0, Body: uid})
+        ws.send(s)
+
+        setInterval(function () {
+            var s = JSON.stringify({Cmd: 1})
+            ws.send(s)
+        }, 1)
+    }, 1000)
+
+
+</script>
+
+<style>
+    html, body, #app {
+        height: 100%;
+        width: 100%;
+    }
+
+    .tank {
+        position: absolute;
+        top: 500px;
+        width: 30px;
+        height: 30px;
+        background-color: aquamarine;
+        /*transition: all 0.1s linear;*/
+    }
+</style>
+</html>
