@@ -11,6 +11,9 @@ import (
 	"github.com/bysir-zl/hubs/core/net/conn_wrap"
 	"encoding/json"
 	"sync"
+	"github.com/bysir-zl/game-frame-probe/common/app"
+	"fmt"
+	"time"
 )
 
 type AgentActor struct {
@@ -20,18 +23,6 @@ type AgentActor struct {
 
 func (p *AgentActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case *pbgo.AgentConnect:
-		// 当有节点连接上这个网关
-		p.Lock()
-		p.serverMap[msg.ServerName] = msg.Sender
-		p.Unlock()
-		log.InfoT("Agent", msg.ServerName+" conned")
-
-		props := actor.FromInstance(p)
-		pid := actor.Spawn(props)
-		msg.Sender.Tell(&pbgo.AgentConnected{Message: "Welcome!", Server: pid})
-
-		context.Watch(msg.Sender)
 	case *pbgo.AgentForwardToSvr:
 		if pid, ok := p.serverMap[msg.ServerName]; ok {
 			pid.Tell(msg)
@@ -48,13 +39,45 @@ func (p *AgentActor) Receive(context actor.Context) {
 	}
 }
 
+var (
+	id   string = "agent-1"
+	addr string = "127.0.0.1"
+	port int    = 8080
+)
+
 func Server() {
-	_, err := serverNode()
+	agentPid, err := serverNode()
 	if err != nil {
 		panic(err)
 	}
-
 	serverCli()
+
+	app.RegisterService(&app.Service{
+		Id:      id,
+		Name:    id,
+		Address: addr,
+		Port:    port,
+	}, "10s")
+	app.UpdateServerTTL(id, "pass")
+	app.OnChangedFunc(func(services map[string]*app.Service) {
+		StdActor.serverMap = map[string]*actor.PID{}
+		for id, ser := range services {
+			if ser.Status == "pass" || ser.Status == "passing" {
+				addr := fmt.Sprintf("%s:%d", ser.Address, ser.Port)
+				pid := actor.NewPID(addr, id)
+				if pid == agentPid {
+					continue
+				}
+				pid.Tell(&pbgo.AgentConnect{Sender: agentPid})
+				StdActor.serverMap[id] = pid
+			}
+		}
+		log.InfoT("agent-change", services)
+	})
+	app.Init()
+	for range time.Tick(time.Second * 5) {
+		app.UpdateServerTTL(id, "pass")
+	}
 }
 
 func NewAgentActor() *AgentActor {
@@ -64,11 +87,11 @@ func NewAgentActor() *AgentActor {
 }
 
 func serverNode() (pid *actor.PID, err error) {
-	nodeAddr := "127.0.0.1:8080"
+	nodeAddr := fmt.Sprintf("%s:%d", addr, port)
 
 	remote.Start(nodeAddr)
 	props := actor.FromInstance(StdActor)
-	pid, err = actor.SpawnNamed(props, "agent")
+	pid, err = actor.SpawnNamed(props, id)
 	return
 }
 
@@ -110,7 +133,7 @@ func serverCli() {
 	addr := "127.0.0.1:8081"
 
 	cliServer = hubs.New(addr, listener.NewWs(), clientHandle)
-	cliServer.Run()
+	go cliServer.Run()
 }
 
 var cliServer *hubs.Server

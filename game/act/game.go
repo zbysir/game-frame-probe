@@ -6,6 +6,9 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/bysir-zl/bygo/log"
+	"github.com/bysir-zl/game-frame-probe/common/app"
+	"time"
+	"fmt"
 )
 
 type GameActor struct {
@@ -14,6 +17,9 @@ type GameActor struct {
 
 func (p *GameActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
+	case *pbgo.AgentConnect:
+		log.InfoT("Agent", msg.ServerName+" conned")
+		p.agent = msg.Sender
 	case *pbgo.AgentConnected:
 		p.agent = msg.Server
 	case *pbgo.AgentForwardToSvr:
@@ -33,27 +39,40 @@ func NewGameActor() *GameActor {
 	}
 }
 
+var mPid *actor.PID
+
+var (
+	id   string = "game-1"
+	addr string = "127.0.0.1"
+	port int    = 8090
+)
+
 func Server() {
 	pid, err := serverNode()
 	if err != nil {
 		panic(err)
 	}
-	connAgent(pid)
+	mPid = pid
 
-	<-(chan int)(nil)
-}
+	app.Init()
+	app.RegisterService(&app.Service{
+		Id:      id,
+		Name:    id,
+		Address: addr,
+		Port:    port,
+	}, "10s")
+	app.UpdateServerTTL(id, "pass")
 
-func connAgent(pid *actor.PID) {
-	agentAddr := "127.0.0.1:8080"
-	aPid := actor.NewPID(agentAddr, "agent")
-	aPid.Tell(&pbgo.AgentConnect{ServerName: "game", Sender: pid})
+	for range time.Tick(time.Second * 5) {
+		app.UpdateServerTTL(id, "pass")
+	}
 }
 
 func serverNode() (pid *actor.PID, err error) {
-	nodeAddr := "127.0.0.1:8090"
+	nodeAddr := fmt.Sprintf("%s:%d", addr, port)
 
 	remote.Start(nodeAddr)
 	props := actor.FromInstance(NewGameActor())
-	pid, err = actor.SpawnNamed(props, "game")
+	pid, err = actor.SpawnNamed(props, id)
 	return
 }
