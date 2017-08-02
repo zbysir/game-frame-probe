@@ -5,7 +5,7 @@ import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
 // 节点连接
 message AgentConnect {
     actor.PID Sender = 1; // 谁连接了
-    string ServerName = 2; // 哪个服务器
+    string ServerType = 2; // 哪个服务器
 }
 
 message AgentConnected {
@@ -15,7 +15,7 @@ message AgentConnected {
 
 // 转发到服务器
 message AgentForwardToSvr {
-    string ServerName = 1;
+    string ServerType = 1;
     string Uid = 2;
     bytes Body = 3;
 }

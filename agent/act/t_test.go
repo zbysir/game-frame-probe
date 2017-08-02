@@ -5,7 +5,7 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	Server()
+	Run()
 }
 
 //func TestTell(t *testing.T) {

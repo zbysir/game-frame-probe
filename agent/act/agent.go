@@ -14,23 +14,38 @@ import (
 	"fmt"
 	"time"
 	"github.com/bysir-zl/game-frame-probe/common/service"
+	"strings"
 )
 
+type Server struct {
+	*actor.PID
+}
+
+type ServerGroup struct {
+	Type    string
+	Servers map[string]*Server // id:server
+}
+
 type AgentActor struct {
-	serverMap map[string]*actor.PID
+	serverGroups map[string]*ServerGroup // type:serverGroup
 	sync.Mutex
 }
 
 func (p *AgentActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *pbgo.AgentForwardToSvr:
-		if pid, ok := p.serverMap[msg.ServerName]; ok {
-			pid.Tell(msg)
+		if servers, ok := p.serverGroups[msg.ServerType]; ok {
+			if len(servers.Servers) == 0 {
+				break
+			}
+			for _, s := range servers.Servers {
+				s.Tell(msg)
+				break
+			}
 		}
 	case *pbgo.AgentForwardToCli:
 		cliServer.SendToTopic(msg.Uid, msg.Body)
 	case *actor.Terminated:
-		context.Unwatch(msg.Who)
 		log.InfoT("agent", "Terminated", msg.Who, msg.AddressTerminated)
 	case *actor.Started:
 
@@ -45,14 +60,15 @@ var (
 	port int    = 8080
 )
 
-func Server() {
+func Run() {
 	agentPid, err := serverNode()
 	if err != nil {
 		panic(err)
 	}
 	serverCli()
-	manager := service.NewManagerEtcd()
 
+	// 注册服务
+	manager := service.NewManagerEtcd()
 	lease, err := manager.RegisterService(&service.Server{
 		Id:      id,
 		Name:    id,
@@ -72,8 +88,23 @@ func Server() {
 			if addr == agentPid.Address {
 				break
 			}
-			StdActor.serverMap[server.Id] = pid
+			serverType := getServerTypeFromId(server.Id)
+			if group, ok := StdActor.serverGroups[serverType]; ok {
+				group.Servers[server.Id] = &Server{PID: pid}
+			} else {
+				StdActor.serverGroups[serverType] = &ServerGroup{
+					Type: serverType,
+					Servers: map[string]*Server{
+						server.Id: {PID: pid},
+					},
+				}
+			}
 			pid.Tell(&pbgo.AgentConnect{Sender: agentPid})
+		case service.SC_Offline:
+			serverType := getServerTypeFromId(server.Id)
+			if group, ok := StdActor.serverGroups[serverType]; ok {
+				delete(group.Servers, server.Id)
+			}
 		}
 
 		return
@@ -86,7 +117,7 @@ func Server() {
 
 func NewAgentActor() *AgentActor {
 	return &AgentActor{
-		serverMap: map[string]*actor.PID{},
+		serverGroups: map[string]*ServerGroup{},
 	}
 }
 
@@ -124,13 +155,17 @@ func clientHandle(server *hubs.Server, conn conn_wrap.Interface) {
 			uid = p.Body
 			server.Subscribe(conn, uid)
 		case 1:
-			msg := pbgo.AgentForwardToSvr{ServerName: "game", Body: []byte(p.Body), Uid: uid}
+			msg := pbgo.AgentForwardToSvr{ServerType: "game", Body: []byte(p.Body), Uid: uid}
 			pid.Tell(&msg)
 		case 2:
-			msg := pbgo.AgentForwardToSvr{ServerName: "room", Body: []byte(p.Body), Uid: uid}
+			msg := pbgo.AgentForwardToSvr{ServerType: "room", Body: []byte(p.Body), Uid: uid}
 			pid.Tell(&msg)
 		}
 	}
+}
+
+func getServerTypeFromId(id string) string {
+	return strings.Split(id, "-")[0]
 }
 
 func serverCli() {
@@ -138,7 +173,12 @@ func serverCli() {
 
 	cliServer = hubs.New(addr, listener.NewWs(), clientHandle)
 	log.InfoT("agent", "serverCli started on", addr)
-	go cliServer.Run()
+	go func() {
+		err := cliServer.Run()
+		if err != nil {
+			log.ErrorT("agent", "serverCli err", err)
+		}
+	}()
 }
 
 var cliServer *hubs.Server

@@ -6,9 +6,9 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/bysir-zl/bygo/log"
-	"github.com/bysir-zl/game-frame-probe/common/app"
 	"time"
 	"fmt"
+	"github.com/bysir-zl/game-frame-probe/common/service"
 )
 
 type GameActor struct {
@@ -18,7 +18,7 @@ type GameActor struct {
 func (p *GameActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *pbgo.AgentConnect:
-		log.InfoT("Agent", msg.ServerName+" conned")
+		log.InfoT("Agent", msg.ServerType+" conned")
 		p.agent = msg.Sender
 	case *pbgo.AgentConnected:
 		p.agent = msg.Server
@@ -29,6 +29,8 @@ func (p *GameActor) Receive(context actor.Context) {
 				Body: []byte(`{"data":"hello"}`),
 			})
 		}
+	case *actor.Started:
+		
 	default:
 		log.Info(reflect.TypeOf(msg).String())
 	}
@@ -39,8 +41,6 @@ func NewGameActor() *GameActor {
 	}
 }
 
-var mPid *actor.PID
-
 var (
 	id   string = "game-1"
 	addr string = "127.0.0.1"
@@ -48,23 +48,25 @@ var (
 )
 
 func Server() {
-	pid, err := serverNode()
+	_, err := serverNode()
 	if err != nil {
 		panic(err)
 	}
-	mPid = pid
-
-	service.Init()
-	service.RegisterService(&service.Service{
+	
+	// 注册服务
+	manager := service.NewManagerEtcd()
+	lease, err := manager.RegisterService(&service.Server{
 		Id:      id,
 		Name:    id,
 		Address: addr,
 		Port:    port,
-	}, "10s")
-	service.UpdateServerTTL(id, "pass")
+	})
+	if err != nil {
+		panic(err)
+	}
 
 	for range time.Tick(time.Second * 5) {
-		service.UpdateServerTTL(id, "pass")
+		manager.UpdateServerTTL(lease)
 	}
 }
 

@@ -8,5 +8,5 @@ import "github.com/bysir-zl/game-frame-probe/agent/act"
 // length[4,uint32] cmd[4] bytes[~]
 
 func main() {
-	act.Server()
+	act.Run()
 }
