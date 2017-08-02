@@ -11,9 +11,9 @@ import (
 	"github.com/bysir-zl/hubs/core/net/conn_wrap"
 	"encoding/json"
 	"sync"
-	"github.com/bysir-zl/game-frame-probe/common/app"
 	"fmt"
 	"time"
+	"github.com/bysir-zl/game-frame-probe/common/service"
 )
 
 type AgentActor struct {
@@ -51,32 +51,36 @@ func Server() {
 		panic(err)
 	}
 	serverCli()
+	manager := service.NewManagerEtcd()
 
-	app.RegisterService(&app.Service{
+	lease, err := manager.RegisterService(&service.Server{
 		Id:      id,
 		Name:    id,
 		Address: addr,
 		Port:    port,
-	}, "10s")
-	app.UpdateServerTTL(id, "pass")
-	app.OnChangedFunc(func(services map[string]*app.Service) {
-		StdActor.serverMap = map[string]*actor.PID{}
-		for id, ser := range services {
-			if ser.Status == "pass" || ser.Status == "passing" {
-				addr := fmt.Sprintf("%s:%d", ser.Address, ser.Port)
-				pid := actor.NewPID(addr, id)
-				if pid == agentPid {
-					continue
-				}
-				pid.Tell(&pbgo.AgentConnect{Sender: agentPid})
-				StdActor.serverMap[id] = pid
-			}
-		}
-		log.InfoT("agent-change", services)
 	})
-	app.Init()
+	if err != nil {
+		panic(err)
+	}
+
+	manager.WatchServer(func(server *service.Server, change service.ServerChange) {
+		switch change {
+		case service.SC_Online:
+			addr := fmt.Sprintf("%s:%d", server.Address, server.Port)
+			pid := actor.NewPID(addr, server.Id)
+			// 不要连接自己
+			if addr == agentPid.Address {
+				break
+			}
+			StdActor.serverMap[server.Id] = pid
+			pid.Tell(&pbgo.AgentConnect{Sender: agentPid})
+		}
+
+		return
+	})
+
 	for range time.Tick(time.Second * 5) {
-		app.UpdateServerTTL(id, "pass")
+		manager.UpdateServerTTL(lease)
 	}
 }
 
@@ -133,6 +137,7 @@ func serverCli() {
 	addr := "127.0.0.1:8081"
 
 	cliServer = hubs.New(addr, listener.NewWs(), clientHandle)
+	log.InfoT("agent", "serverCli started on", addr)
 	go cliServer.Run()
 }
 

@@ -54,17 +54,17 @@ func Server() {
 	}
 	mPid = pid
 
-	app.Init()
-	app.RegisterService(&app.Service{
+	service.Init()
+	service.RegisterService(&service.Service{
 		Id:      id,
 		Name:    id,
 		Address: addr,
 		Port:    port,
 	}, "10s")
-	app.UpdateServerTTL(id, "pass")
+	service.UpdateServerTTL(id, "pass")
 
 	for range time.Tick(time.Second * 5) {
-		app.UpdateServerTTL(id, "pass")
+		service.UpdateServerTTL(id, "pass")
 	}
 }
 
