@@ -11,17 +11,18 @@ import (
 	"github.com/bysir-zl/game-frame-probe/common/service"
 )
 
+const TAG = "game"
+
 type GameActor struct {
 	agent *actor.PID
 }
 
 func (p *GameActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case *pbgo.AgentConnect:
-		log.InfoT("Agent", msg.ServerType+" conned")
-		p.agent = msg.Sender
-	case *pbgo.AgentConnected:
-		p.agent = msg.Server
+	case *pbgo.AgentConnectReq:
+		log.InfoT(TAG, "agent conn request")
+		p.agent = msg.Agent
+		context.Respond(&pbgo.AgentConnectRsp{ServerId: id})
 	case *pbgo.AgentForwardToSvr:
 		if msg.Uid != "" {
 			p.agent.Tell(&pbgo.AgentForwardToCli{
@@ -29,8 +30,16 @@ func (p *GameActor) Receive(context actor.Context) {
 				Body: []byte(`{"data":"hello"}`),
 			})
 		}
+		go func() {
+			for range time.Tick(5 * time.Second) {
+				p.agent.Tell(&pbgo.AgentForwardToCli{
+					Uid:  msg.Uid,
+					Body: []byte(`{"data":"ticker"}`),
+				})
+			}
+		}()
 	case *actor.Started:
-		
+
 	default:
 		log.Info(reflect.TypeOf(msg).String())
 	}
@@ -52,7 +61,7 @@ func Server() {
 	if err != nil {
 		panic(err)
 	}
-	
+
 	// 注册服务
 	manager := service.NewManagerEtcd()
 	lease, err := manager.RegisterService(&service.Server{

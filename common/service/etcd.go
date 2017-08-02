@@ -123,6 +123,9 @@ func NewManagerEtcd() Manager {
 	etcd := &Etcd{
 		ttl: 20,
 	}
-	etcd.Init()
+	err:=etcd.Init()
+	if err != nil {
+		panic(err)
+	}
 	return etcd
 }
