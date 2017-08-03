@@ -1,14 +1,22 @@
 syntax = "proto3";
 package pbgo;
-import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
 
-// 客服端
+// 客服端消息
 message ClientMessageReq {
-    actor.PID Pid = 1; // 玩家actor的pid
-    bytes Body = 2;
+    bytes Body = 1;
+    string Uid = 2;
 }
 
 message ClientMessageRsp {
-    actor.PID Pid = 1; // 
-    bytes Body = 2;
+    bytes Body = 1;
+}
+
+// 客户端上线
+message ClientOnline {
+    string Uid = 2;
+}
+
+// 客户端上线
+message ClientOffline {
+    string Uid = 2;
 }

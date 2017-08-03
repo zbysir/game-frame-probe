@@ -18,12 +18,12 @@ type GameActor struct {
 
 func (p *GameActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case *pbgo.AgentForwardToSvr:
+	case *pbgo.ClientMessageReq:
 		context.Respond(&pbgo.ClientMessageRsp{
-			Body: []byte(`{"data":"hello"}`),
+			Body: []byte(fmt.Sprintf(`{"data":"hello %s"}`, string(msg.Uid))),
 		})
 	case *actor.Started:
-		log.InfoT(TAG, "actor started")
+
 	default:
 		log.Info(reflect.TypeOf(msg).String())
 	}

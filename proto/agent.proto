@@ -1,19 +1,7 @@
 syntax = "proto3";
 package pbgo;
-import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
 
-// 网关连接请求
-message AgentConnectReq {
-    actor.PID Agent = 1; // 网关
-}
-
-// 网关连接响应
-message AgentConnectRsp {
-    string ServerId = 1; // 服务器id
-    actor.PID Pid = 2; // 自己
-}
-
-// 转发到服务器
+// 转发到服务器 unused
 message AgentForwardToSvr {
     string ServerType = 1;
     bytes Body = 2;

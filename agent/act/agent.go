@@ -14,7 +14,6 @@ import (
 	"time"
 	"github.com/bysir-zl/game-frame-probe/common/service"
 	"strings"
-	"github.com/AsynkronIT/protoactor-go/eventstream"
 )
 
 type Server struct {
@@ -38,8 +37,8 @@ type AgentActor struct {
 
 const TAG = "agent"
 
-func (p *AgentActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
+func (p *AgentActor) Receive(ctx actor.Context) {
+	switch msg := ctx.Message().(type) {
 	case *ServerChange:
 		server := msg.server
 		id := server.Id
@@ -50,7 +49,7 @@ func (p *AgentActor) Receive(context actor.Context) {
 			if serverAddr == fmt.Sprintf("%s:%d", addr, port) {
 				break
 			}
-	
+
 			pid := actor.NewPID(serverAddr, id)
 			serverType := getServerTypeFromId(id)
 			if group, ok := p.serverGroups[serverType]; ok {
@@ -63,8 +62,8 @@ func (p *AgentActor) Receive(context actor.Context) {
 					},
 				}
 			}
-			log.InfoT(TAG, "server %s is conned", id)
-			
+			log.InfoT(TAG, "server %s is readied", id)
+
 		case service.SC_Offline:
 			serverType := getServerTypeFromId(id)
 			if group, ok := p.serverGroups[serverType]; ok {
@@ -73,6 +72,12 @@ func (p *AgentActor) Receive(context actor.Context) {
 
 			log.InfoT(TAG, "server %s offline", id)
 		}
+	case *ClientMessage:
+		p.OnClientMessage(msg, ctx)
+	case *pbgo.ClientOnline:
+		// todo 记录用户id->pid
+	case *pbgo.ClientOffline:
+
 
 	case *pbgo.AgentForwardToSvr:
 		telled := false
@@ -80,9 +85,9 @@ func (p *AgentActor) Receive(context actor.Context) {
 			if len(servers.Servers) == 0 {
 				break
 			}
-			
+
 			for _, s := range servers.Servers {
-				s.Request(msg, context.Spawn())
+				s.Request(msg, ctx.Sender())
 				telled = true
 				break
 			}
@@ -94,10 +99,28 @@ func (p *AgentActor) Receive(context actor.Context) {
 	case *actor.Terminated:
 		log.InfoT(TAG, "Terminated", msg, msg.Who, msg.AddressTerminated)
 	case *actor.Started:
-		log.InfoT(TAG, "actor started")
 
 	default:
 		log.Info(reflect.TypeOf(msg).String())
+	}
+}
+func (p *AgentActor) OnClientMessage(msg *ClientMessage, ctx actor.Context) {
+	telled := false
+	if servers, ok := p.serverGroups[msg.toServerType]; ok {
+		if len(servers.Servers) != 0 {
+			for _, s := range servers.Servers {
+				m := &pbgo.ClientMessageReq{
+					Body: msg.body,
+					Uid:  msg.uid,
+				}
+				s.Request(m, ctx.Sender())
+				telled = true
+			}
+		}
+	}
+
+	if !telled {
+		log.WarnT(TAG, "forward server type %s is not found", msg.toServerType)
 	}
 }
 
@@ -116,10 +139,6 @@ func Run() {
 	}
 	serverCli(stdActor)
 
-	eventstream.Subscribe(func(evt interface{}) {
-		log.InfoT("actor watch", evt)
-	})
-
 	// 注册服务
 	manager := service.NewManagerEtcd()
 	lease, err := manager.RegisterService(&service.Server{
@@ -134,7 +153,6 @@ func Run() {
 
 	// 监听服务变化
 	manager.WatchServer(func(server *service.Server, change service.ServerChange) {
-		log.DebugT("test", "watch ", server, change)
 		agentPid.Tell(&ServerChange{server: server, change: change})
 		return
 	})
@@ -171,9 +189,8 @@ func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 		}
 	}()
 	// 新建一个agent处理用户请求
-	// 每一个用户一个actor
 	agentPid := actor.Spawn(actor.FromInstance(p.agentActor))
-	RunClientActor(conn, agentPid)
+	StartClientActorRecvice(conn, agentPid)
 }
 
 func getServerTypeFromId(id string) string {
