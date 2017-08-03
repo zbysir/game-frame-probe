@@ -16,12 +16,5 @@ message AgentConnectRsp {
 // 转发到服务器
 message AgentForwardToSvr {
     string ServerType = 1;
-    string Uid = 2;
-    bytes Body = 3;
-}
-
-// 转发到客户端
-message AgentForwardToCli {
-    string Uid = 1;
     bytes Body = 2;
 }

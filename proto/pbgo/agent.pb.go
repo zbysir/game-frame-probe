@@ -6,13 +6,15 @@
 
 	It is generated from these files:
 		agent.proto
+		client.proto
 		game.proto
 
 	It has these top-level messages:
 		AgentConnectReq
 		AgentConnectRsp
 		AgentForwardToSvr
-		AgentForwardToCli
+		ClientMessageReq
+		ClientMessageRsp
 		GamePlayerAction
 */
 package pbgo
@@ -40,7 +42,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
-// 节点连接
+// 网关连接请求
 type AgentConnectReq struct {
 	Agent *actor.PID `protobuf:"bytes,1,opt,name=Agent" json:"Agent,omitempty"`
 }
@@ -56,6 +58,7 @@ func (m *AgentConnectReq) GetAgent() *actor.PID {
 	return nil
 }
 
+// 网关连接响应
 type AgentConnectRsp struct {
 	ServerId string     `protobuf:"bytes,1,opt,name=ServerId,proto3" json:"ServerId,omitempty"`
 	Pid      *actor.PID `protobuf:"bytes,2,opt,name=Pid" json:"Pid,omitempty"`
@@ -82,8 +85,7 @@ func (m *AgentConnectRsp) GetPid() *actor.PID {
 // 转发到服务器
 type AgentForwardToSvr struct {
 	ServerType string `protobuf:"bytes,1,opt,name=ServerType,proto3" json:"ServerType,omitempty"`
-	Uid        string `protobuf:"bytes,2,opt,name=Uid,proto3" json:"Uid,omitempty"`
-	Body       []byte `protobuf:"bytes,3,opt,name=Body,proto3" json:"Body,omitempty"`
+	Body       []byte `protobuf:"bytes,2,opt,name=Body,proto3" json:"Body,omitempty"`
 }
 
 func (m *AgentForwardToSvr) Reset()                    { *m = AgentForwardToSvr{} }
@@ -97,38 +99,7 @@ func (m *AgentForwardToSvr) GetServerType() string {
 	return ""
 }
 
-func (m *AgentForwardToSvr) GetUid() string {
-	if m != nil {
-		return m.Uid
-	}
-	return ""
-}
-
 func (m *AgentForwardToSvr) GetBody() []byte {
-	if m != nil {
-		return m.Body
-	}
-	return nil
-}
-
-// 转发到客户端
-type AgentForwardToCli struct {
-	Uid  string `protobuf:"bytes,1,opt,name=Uid,proto3" json:"Uid,omitempty"`
-	Body []byte `protobuf:"bytes,2,opt,name=Body,proto3" json:"Body,omitempty"`
-}
-
-func (m *AgentForwardToCli) Reset()                    { *m = AgentForwardToCli{} }
-func (*AgentForwardToCli) ProtoMessage()               {}
-func (*AgentForwardToCli) Descriptor() ([]byte, []int) { return fileDescriptorAgent, []int{3} }
-
-func (m *AgentForwardToCli) GetUid() string {
-	if m != nil {
-		return m.Uid
-	}
-	return ""
-}
-
-func (m *AgentForwardToCli) GetBody() []byte {
 	if m != nil {
 		return m.Body
 	}
@@ -139,7 +110,6 @@ func init() {
 	proto.RegisterType((*AgentConnectReq)(nil), "pbgo.AgentConnectReq")
 	proto.RegisterType((*AgentConnectRsp)(nil), "pbgo.AgentConnectRsp")
 	proto.RegisterType((*AgentForwardToSvr)(nil), "pbgo.AgentForwardToSvr")
-	proto.RegisterType((*AgentForwardToCli)(nil), "pbgo.AgentForwardToCli")
 }
 func (this *AgentConnectReq) Equal(that interface{}) bool {
 	if that == nil {
@@ -232,42 +202,6 @@ func (this *AgentForwardToSvr) Equal(that interface{}) bool {
 	if this.ServerType != that1.ServerType {
 		return false
 	}
-	if this.Uid != that1.Uid {
-		return false
-	}
-	if !bytes.Equal(this.Body, that1.Body) {
-		return false
-	}
-	return true
-}
-func (this *AgentForwardToCli) Equal(that interface{}) bool {
-	if that == nil {
-		if this == nil {
-			return true
-		}
-		return false
-	}
-
-	that1, ok := that.(*AgentForwardToCli)
-	if !ok {
-		that2, ok := that.(AgentForwardToCli)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return true
-		}
-		return false
-	} else if this == nil {
-		return false
-	}
-	if this.Uid != that1.Uid {
-		return false
-	}
 	if !bytes.Equal(this.Body, that1.Body) {
 		return false
 	}
@@ -302,21 +236,9 @@ func (this *AgentForwardToSvr) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 7)
+	s := make([]string, 0, 6)
 	s = append(s, "&pbgo.AgentForwardToSvr{")
 	s = append(s, "ServerType: "+fmt.Sprintf("%#v", this.ServerType)+",\n")
-	s = append(s, "Uid: "+fmt.Sprintf("%#v", this.Uid)+",\n")
-	s = append(s, "Body: "+fmt.Sprintf("%#v", this.Body)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *AgentForwardToCli) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 6)
-	s = append(s, "&pbgo.AgentForwardToCli{")
-	s = append(s, "Uid: "+fmt.Sprintf("%#v", this.Uid)+",\n")
 	s = append(s, "Body: "+fmt.Sprintf("%#v", this.Body)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -412,42 +334,6 @@ func (m *AgentForwardToSvr) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintAgent(dAtA, i, uint64(len(m.ServerType)))
 		i += copy(dAtA[i:], m.ServerType)
 	}
-	if len(m.Uid) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintAgent(dAtA, i, uint64(len(m.Uid)))
-		i += copy(dAtA[i:], m.Uid)
-	}
-	if len(m.Body) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintAgent(dAtA, i, uint64(len(m.Body)))
-		i += copy(dAtA[i:], m.Body)
-	}
-	return i, nil
-}
-
-func (m *AgentForwardToCli) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *AgentForwardToCli) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Uid) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintAgent(dAtA, i, uint64(len(m.Uid)))
-		i += copy(dAtA[i:], m.Uid)
-	}
 	if len(m.Body) > 0 {
 		dAtA[i] = 0x12
 		i++
@@ -515,24 +401,6 @@ func (m *AgentForwardToSvr) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovAgent(uint64(l))
 	}
-	l = len(m.Uid)
-	if l > 0 {
-		n += 1 + l + sovAgent(uint64(l))
-	}
-	l = len(m.Body)
-	if l > 0 {
-		n += 1 + l + sovAgent(uint64(l))
-	}
-	return n
-}
-
-func (m *AgentForwardToCli) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Uid)
-	if l > 0 {
-		n += 1 + l + sovAgent(uint64(l))
-	}
 	l = len(m.Body)
 	if l > 0 {
 		n += 1 + l + sovAgent(uint64(l))
@@ -580,18 +448,6 @@ func (this *AgentForwardToSvr) String() string {
 	}
 	s := strings.Join([]string{`&AgentForwardToSvr{`,
 		`ServerType:` + fmt.Sprintf("%v", this.ServerType) + `,`,
-		`Uid:` + fmt.Sprintf("%v", this.Uid) + `,`,
-		`Body:` + fmt.Sprintf("%v", this.Body) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *AgentForwardToCli) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&AgentForwardToCli{`,
-		`Uid:` + fmt.Sprintf("%v", this.Uid) + `,`,
 		`Body:` + fmt.Sprintf("%v", this.Body) + `,`,
 		`}`,
 	}, "")
@@ -860,145 +716,6 @@ func (m *AgentForwardToSvr) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Uid", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowAgent
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthAgent
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Uid = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Body", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowAgent
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthAgent
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Body = append(m.Body[:0], dAtA[iNdEx:postIndex]...)
-			if m.Body == nil {
-				m.Body = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipAgent(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthAgent
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *AgentForwardToCli) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowAgent
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: AgentForwardToCli: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AgentForwardToCli: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Uid", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowAgent
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthAgent
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Uid = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Body", wireType)
 			}
 			var byteLen int
@@ -1157,7 +874,7 @@ var (
 func init() { proto.RegisterFile("agent.proto", fileDescriptorAgent) }
 
 var fileDescriptorAgent = []byte{
-	// 292 bytes of a gzipped FileDescriptorProto
+	// 263 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4e, 0x4c, 0x4f, 0xcd,
 	0x2b, 0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x29, 0x48, 0x4a, 0xcf, 0x97, 0x32, 0x4b,
 	0xcf, 0x2c, 0xc9, 0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x77, 0x2c, 0xae, 0xcc, 0xcb, 0x2e,
@@ -1167,14 +884,12 @@ var fileDescriptorAgent = []byte{
 	0x0a, 0x8c, 0x1a, 0xdc, 0x46, 0x5c, 0x7a, 0x60, 0x6d, 0x7a, 0x01, 0x9e, 0x2e, 0x41, 0x10, 0x09,
 	0x25, 0x6f, 0x34, 0x4d, 0xc5, 0x05, 0x42, 0x52, 0x5c, 0x1c, 0xc1, 0xa9, 0x45, 0x65, 0xa9, 0x45,
 	0x9e, 0x29, 0x60, 0x7d, 0x9c, 0x41, 0x70, 0xbe, 0x90, 0x0c, 0x17, 0x73, 0x40, 0x66, 0x8a, 0x04,
-	0x13, 0x86, 0x71, 0x20, 0x61, 0xa5, 0x48, 0x2e, 0x41, 0xb0, 0x61, 0x6e, 0xf9, 0x45, 0xe5, 0x89,
+	0x13, 0x86, 0x71, 0x20, 0x61, 0x25, 0x77, 0x2e, 0x41, 0xb0, 0x61, 0x6e, 0xf9, 0x45, 0xe5, 0x89,
 	0x45, 0x29, 0x21, 0xf9, 0xc1, 0x65, 0x45, 0x42, 0x72, 0x5c, 0x5c, 0x10, 0xed, 0x21, 0x95, 0x05,
-	0xa9, 0x50, 0x03, 0x91, 0x44, 0x84, 0x04, 0xb8, 0x98, 0x43, 0xa1, 0x46, 0x72, 0x06, 0x81, 0x98,
-	0x42, 0x42, 0x5c, 0x2c, 0x4e, 0xf9, 0x29, 0x95, 0x12, 0xcc, 0x0a, 0x8c, 0x1a, 0x3c, 0x41, 0x60,
-	0xb6, 0x92, 0x25, 0xba, 0xd1, 0xce, 0x39, 0x99, 0x30, 0xad, 0x8c, 0x98, 0x5a, 0x99, 0x10, 0x5a,
-	0x9d, 0x74, 0x2e, 0x3c, 0x94, 0x63, 0xb8, 0xf1, 0x50, 0x8e, 0xe1, 0xc3, 0x43, 0x39, 0xc6, 0x86,
-	0x47, 0x72, 0x8c, 0x2b, 0x1e, 0xc9, 0x31, 0x9e, 0x78, 0x24, 0xc7, 0x78, 0xe1, 0x91, 0x1c, 0xe3,
-	0x83, 0x47, 0x72, 0x8c, 0x2f, 0x1e, 0xc9, 0x31, 0x7c, 0x78, 0x24, 0xc7, 0x38, 0xe1, 0xb1, 0x1c,
-	0x43, 0x12, 0x1b, 0x38, 0x30, 0x8d, 0x01, 0x01, 0x00, 0x00, 0xff, 0xff, 0x8c, 0x10, 0x68, 0xa0,
-	0x99, 0x01, 0x00, 0x00,
+	0xa9, 0x50, 0x03, 0x91, 0x44, 0x84, 0x84, 0xb8, 0x58, 0x9c, 0xf2, 0x53, 0x2a, 0xc1, 0x66, 0xf2,
+	0x04, 0x81, 0xd9, 0x4e, 0x3a, 0x17, 0x1e, 0xca, 0x31, 0xdc, 0x78, 0x28, 0xc7, 0xf0, 0xe1, 0xa1,
+	0x1c, 0x63, 0xc3, 0x23, 0x39, 0xc6, 0x15, 0x8f, 0xe4, 0x18, 0x4f, 0x3c, 0x92, 0x63, 0xbc, 0xf0,
+	0x48, 0x8e, 0xf1, 0xc1, 0x23, 0x39, 0xc6, 0x17, 0x8f, 0xe4, 0x18, 0x3e, 0x3c, 0x92, 0x63, 0x9c,
+	0xf0, 0x58, 0x8e, 0x21, 0x89, 0x0d, 0xec, 0x7f, 0x63, 0x40, 0x00, 0x00, 0x00, 0xff, 0xff, 0xed,
+	0x7a, 0x92, 0x93, 0x4c, 0x01, 0x00, 0x00,
 }

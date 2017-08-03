@@ -14,32 +14,16 @@ import (
 const TAG = "game"
 
 type GameActor struct {
-	agent *actor.PID
 }
 
 func (p *GameActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case *pbgo.AgentConnectReq:
-		log.InfoT(TAG, "agent conn request")
-		p.agent = msg.Agent
-		context.Respond(&pbgo.AgentConnectRsp{ServerId: id})
 	case *pbgo.AgentForwardToSvr:
-		if msg.Uid != "" {
-			p.agent.Tell(&pbgo.AgentForwardToCli{
-				Uid:  msg.Uid,
-				Body: []byte(`{"data":"hello"}`),
-			})
-		}
-		go func() {
-			for range time.Tick(5 * time.Second) {
-				p.agent.Tell(&pbgo.AgentForwardToCli{
-					Uid:  msg.Uid,
-					Body: []byte(`{"data":"ticker"}`),
-				})
-			}
-		}()
+		context.Respond(&pbgo.ClientMessageRsp{
+			Body: []byte(`{"data":"hello"}`),
+		})
 	case *actor.Started:
-
+		log.InfoT(TAG, "actor started")
 	default:
 		log.Info(reflect.TypeOf(msg).String())
 	}
