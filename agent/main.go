@@ -1,6 +1,9 @@
 package main
 
-import "github.com/bysir-zl/game-frame-probe/agent/act"
+import (
+	"github.com/bysir-zl/game-frame-probe/agent/act"
+	"github.com/bysir-zl/game-frame-probe/agent/service"
+)
 
 // 网关
 // 分发消息
@@ -8,5 +11,5 @@ import "github.com/bysir-zl/game-frame-probe/agent/act"
 // length[4,uint32] cmd[4] bytes[~]
 
 func main() {
-	act.Run()
+	service.Run()
 }

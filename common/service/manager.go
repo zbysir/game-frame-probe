@@ -5,6 +5,7 @@ type Server struct {
 	Name    string
 	Address string
 	Port    int
+	Extends map[string]interface{}
 }
 
 type ServerChange int8

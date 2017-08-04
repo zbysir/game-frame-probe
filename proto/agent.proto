@@ -1,8 +1,16 @@
 syntax = "proto3";
 package pbgo;
 
-// 转发到服务器 unused
-message AgentForwardToSvr {
+// 网关向节点连接
+message AgentConnectReq {
+}
+
+// 节点向网关响应
+message AgentConnectRsp {
+}
+
+// 转发到Node unused
+message AgentForwardToNode {
     string ServerType = 1;
     bytes Body = 2;
 }
