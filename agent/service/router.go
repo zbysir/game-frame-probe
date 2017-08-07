@@ -4,8 +4,6 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"errors"
 	"github.com/bysir-zl/game-frame-probe/proto/pbgo"
-	"github.com/bysir-zl/bygo/log"
-	"reflect"
 )
 
 var stdRouter = &Router{}
@@ -13,20 +11,14 @@ var stdRouter = &Router{}
 type Router struct {
 }
 
-func (p *Router) Route(ctx *SenderContext, servers ServerGroups) (serverPid *actor.PID, message interface{}, err error) {
+// 请求路由
+// 用户请求
+func (p *Router) RouteClient(ctx *ClientContext, servers ServerGroups) (serverPid *actor.PID, message interface{}, err error) {
 	serverType := ""
+	uid := "sbsb2"
 
-	switch msg := ctx.Request.(type) {
-	case *ClientReq:
-		// 用户请求转发
-		message = &pbgo.ClientMessageReq{Body: msg.Body, Uid: "sbsb2"}
-		serverType = "game"
-	default:
-		log.InfoT("test", reflect.TypeOf(msg))
-		// 其他的直接转发
-		message = ctx.Request
-		serverType = "game"
-	}
+	message = &pbgo.ClientMessageReq{Body: ctx.Request.Body, Uid: uid}
+	serverType = "game"
 
 	server, ok := servers.SelectServer(serverType)
 	if !ok {
@@ -35,5 +27,18 @@ func (p *Router) Route(ctx *SenderContext, servers ServerGroups) (serverPid *act
 	}
 	serverPid = server.PID
 
+	return
+}
+
+// 请求路由
+// 服务器间的转发
+func (p *Router) RouteServer(req *pbgo.AgentForwardToSvr, servers ServerGroups) (serverPid *actor.PID, message interface{}, err error) {
+	server, ok := servers.SelectServer(req.ServerType)
+	if !ok {
+		err = errors.New("404")
+		return
+	}
+	serverPid = server.PID
+	message = req
 	return
 }

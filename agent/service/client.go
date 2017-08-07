@@ -44,13 +44,13 @@ type ClientReq struct {
 	Body []byte
 }
 
-type SenderContext struct {
-	Request interface{}
+type ClientContext struct {
+	Request *ClientReq
 	data    map[string]interface{}
 	l       *sync.RWMutex
 }
 
-func (p *SenderContext) SetValue(key string, value interface{}) {
+func (p *ClientContext) SetValue(key string, value interface{}) {
 	if p.data == nil {
 		p.data = map[string]interface{}{}
 		p.l = &sync.RWMutex{}
@@ -60,7 +60,7 @@ func (p *SenderContext) SetValue(key string, value interface{}) {
 	p.l.Unlock()
 }
 
-func (p *SenderContext) GetValue(key string) (value interface{}, ok bool) {
+func (p *ClientContext) GetValue(key string) (value interface{}, ok bool) {
 	if p.data == nil {
 		return
 	}
@@ -96,7 +96,8 @@ func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 		}
 	}()
 
-	ctx := &SenderContext{}
+	// 一个请求一个上下文, 用来存储登录信息等
+	ctx := &ClientContext{}
 
 	go func() {
 		bs, err := conn.Read()
@@ -105,7 +106,7 @@ func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 			return
 		}
 		ctx.Request = &ClientReq{Body: bs}
-		serverPid, message, err := p.router.Route(ctx, stdServerGroups)
+		serverPid, message, err := p.router.RouteClient(ctx, stdServerGroups)
 		if err != nil {
 			log.ErrorT(TAG, err)
 		} else {
@@ -118,7 +119,7 @@ func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 				return
 			}
 			ctx.Request = &ClientReq{Body: bs}
-			serverPid, message, err := p.router.Route(ctx, stdServerGroups)
+			serverPid, message, err := p.router.RouteClient(ctx, stdServerGroups)
 			if err != nil {
 				log.ErrorT(TAG, err)
 				continue

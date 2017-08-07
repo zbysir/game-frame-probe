@@ -15,8 +15,7 @@ func (p *AgentActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *pbgo.AgentForwardToSvr:
 		// 服务器之间转发消息
-		mCtx := &SenderContext{Request: msg}
-		serverPid, message, err := p.router.Route(mCtx, stdServerGroups)
+		serverPid, message, err := p.router.RouteServer(msg, stdServerGroups)
 		if err != nil {
 			log.ErrorT(TAG, err)
 			break
