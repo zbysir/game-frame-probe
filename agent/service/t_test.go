@@ -1,4 +1,4 @@
-package act
+package service
 
 import (
 	"testing"

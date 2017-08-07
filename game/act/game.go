@@ -35,7 +35,7 @@ func NewGameActor() *GameActor {
 }
 
 var (
-	id   string = "game-1"
+	id   string = "game/1"
 	addr string = "127.0.0.1"
 	port int    = 8090
 )

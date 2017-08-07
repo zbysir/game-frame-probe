@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/bysir-zl/game-frame-probe/agent/act"
 	"github.com/bysir-zl/game-frame-probe/agent/service"
 )
 

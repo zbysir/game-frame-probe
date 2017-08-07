@@ -8,18 +8,15 @@ import (
 	"time"
 	"github.com/bysir-zl/hubs/core/hubs"
 	"github.com/bysir-zl/hubs/core/net/listener"
-	"github.com/bysir-zl/game-frame-probe/agent/act"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/bysir-zl/hubs/core/net/conn_wrap"
 	"strings"
-	"github.com/bysir-zl/game-frame-probe/proto/pbgo"
-	"encoding/json"
 	"github.com/bysir-zl/bygo/log"
 )
+
 const TAG = "agent"
 
 var (
-	id   string = "agent-1"
+	id   string = "agent/1"
 	addr string = "127.0.0.1"
 	port int    = 8080
 )
@@ -31,6 +28,22 @@ type Server struct {
 
 type Servers map[string]*Server
 type ServerGroups map[string]Servers
+
+func (p ServerGroups) SelectServer(serverType string) (server *Server, ok bool) {
+	lock.RLock()
+	defer lock.RUnlock()
+	if servers, has := p[serverType]; has {
+		if len(servers) != 0 {
+			for _, s := range servers {
+				// todo 这里可能需要返回服务器Pid的子Pid去处理用户请求, 但是这里每次都新建一个PID? 想一想
+				server = s
+				ok = true
+				return
+			}
+		}
+	}
+	return 
+}
 
 type ServerChange struct {
 	server *service.Server
@@ -56,7 +69,7 @@ func GetServers(serverType string) (servers map[string]*Server, has bool) {
 	return
 }
 
-func OnServerChange(msg *ServerChange, ctx actor.Context) {
+func OnServerChange(msg *ServerChange) {
 	server := msg.server
 	id := server.Id
 	switch msg.change {
@@ -88,87 +101,18 @@ func OnServerChange(msg *ServerChange, ctx actor.Context) {
 	}
 }
 
-type ClientReq struct {
-	Body []byte
-}
-
-type ClientRsp struct {
-	ToServerType string
-	Message      interface{}
-}
-
-type ClientContext struct {
-	Request *ClientReq
-}
-
-type ClientHandler struct {
-	agentPid *actor.PID
-}
-
-func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
-
-	clientPid := actor.Spawn(actor.FromInstance(&act.ClientActor{Conn: conn}))
-
-	firstMsg := make(chan struct{})
-	// 5s没消息就关闭连接
-	go func() {
-		select {
-		case <-firstMsg:
-		case <-time.After(5 * time.Second):
-			conn.Close()
-		}
-	}()
-
-	ctx:=ClientContext{}
-
-	go func() {
-		bs, err := conn.Read()
-		close(firstMsg)
-		if err != nil {
-			return
-		}
-		ctx.Request = &ClientReq{Body:bs}
-		
-		// 上线
-		agent.RequestFuture(&pbgo.ClientOnline{Uid: uid}, 5*time.Second).Result()
-		defer agent.Request(&pbgo.ClientOffline{Uid: uid}, clientPid)
-		for {
-			bs, err := conn.Read()
-			if err != nil {
-				return
-			}
-
-			m := Proto{}
-			json.Unmarshal(bs, &m)
-			toServerType := ""
-			switch m.Cmd {
-			case 1:
-				toServerType = "game"
-			}
-
-			agent.Request(&ClientReq{body: bs}, )
-		}
-
-	}()
-
-	return
-}
-
 func getServerTypeFromId(id string) string {
 	return strings.Split(id, "/")[0]
 }
 
 func Run() {
-	agentActor := act.NewAgentActor()
-	nodeAddr := fmt.Sprintf("%s:%d", addr, port)
-
-	remote.Start(nodeAddr)
-	agentPid, err := actor.SpawnNamed(actor.FromInstance(agentActor), id)
+	router := stdRouter
+	agentPid, err := serverNode(router)
 	if err != nil {
 		panic(err)
 	}
 
-	serverCli(agentPid)
+	serverCli(agentPid, router)
 
 	// 注册服务
 	manager := service.NewManagerEtcd()
@@ -184,7 +128,7 @@ func Run() {
 
 	// 监听服务变化
 	manager.WatchServer(func(server *service.Server, change service.ServerChange) {
-		agentPid.Tell(&ServerChange{server: server, change: change})
+		OnServerChange(&ServerChange{server: server, change: change})
 		return
 	})
 
@@ -193,11 +137,21 @@ func Run() {
 	}
 }
 
-func serverCli(agentPid *actor.PID) {
+func serverNode(router *Router) (agentPid *actor.PID, err error) {
+	agentActor := NewAgentActor(router)
+	nodeAddr := fmt.Sprintf("%s:%d", addr, port)
+
+	remote.Start(nodeAddr)
+	agentPid, err = actor.SpawnNamed(actor.FromInstance(agentActor), id)
+	return
+}
+
+func serverCli(agentPid *actor.PID, router *Router) {
 	addr := "127.0.0.1:8081"
 
 	cliServer = hubs.New(addr, listener.NewWs(), &ClientHandler{
 		agentPid: agentPid,
+		router:   router,
 	})
 	log.Info("serverCli started on", addr)
 	go func() {
