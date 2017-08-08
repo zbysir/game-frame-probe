@@ -58,43 +58,26 @@ func (m *ClientMessageRsp) GetBody() []byte {
 	return nil
 }
 
-// 客户端上线
-type ClientOnline struct {
-	Uid string `protobuf:"bytes,2,opt,name=Uid,proto3" json:"Uid,omitempty"`
+// 请求关闭客服端连接
+type ClientCloseRsq struct {
+	Body []byte `protobuf:"bytes,1,opt,name=Body,proto3" json:"Body,omitempty"`
 }
 
-func (m *ClientOnline) Reset()                    { *m = ClientOnline{} }
-func (*ClientOnline) ProtoMessage()               {}
-func (*ClientOnline) Descriptor() ([]byte, []int) { return fileDescriptorClient, []int{2} }
+func (m *ClientCloseRsq) Reset()                    { *m = ClientCloseRsq{} }
+func (*ClientCloseRsq) ProtoMessage()               {}
+func (*ClientCloseRsq) Descriptor() ([]byte, []int) { return fileDescriptorClient, []int{2} }
 
-func (m *ClientOnline) GetUid() string {
+func (m *ClientCloseRsq) GetBody() []byte {
 	if m != nil {
-		return m.Uid
+		return m.Body
 	}
-	return ""
-}
-
-// 客户端上线
-type ClientOffline struct {
-	Uid string `protobuf:"bytes,2,opt,name=Uid,proto3" json:"Uid,omitempty"`
-}
-
-func (m *ClientOffline) Reset()                    { *m = ClientOffline{} }
-func (*ClientOffline) ProtoMessage()               {}
-func (*ClientOffline) Descriptor() ([]byte, []int) { return fileDescriptorClient, []int{3} }
-
-func (m *ClientOffline) GetUid() string {
-	if m != nil {
-		return m.Uid
-	}
-	return ""
+	return nil
 }
 
 func init() {
 	proto.RegisterType((*ClientMessageReq)(nil), "pbgo.ClientMessageReq")
 	proto.RegisterType((*ClientMessageRsp)(nil), "pbgo.ClientMessageRsp")
-	proto.RegisterType((*ClientOnline)(nil), "pbgo.ClientOnline")
-	proto.RegisterType((*ClientOffline)(nil), "pbgo.ClientOffline")
+	proto.RegisterType((*ClientCloseRsq)(nil), "pbgo.ClientCloseRsq")
 }
 func (this *ClientMessageReq) Equal(that interface{}) bool {
 	if that == nil {
@@ -159,7 +142,7 @@ func (this *ClientMessageRsp) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *ClientOnline) Equal(that interface{}) bool {
+func (this *ClientCloseRsq) Equal(that interface{}) bool {
 	if that == nil {
 		if this == nil {
 			return true
@@ -167,9 +150,9 @@ func (this *ClientOnline) Equal(that interface{}) bool {
 		return false
 	}
 
-	that1, ok := that.(*ClientOnline)
+	that1, ok := that.(*ClientCloseRsq)
 	if !ok {
-		that2, ok := that.(ClientOnline)
+		that2, ok := that.(ClientCloseRsq)
 		if ok {
 			that1 = &that2
 		} else {
@@ -184,37 +167,7 @@ func (this *ClientOnline) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.Uid != that1.Uid {
-		return false
-	}
-	return true
-}
-func (this *ClientOffline) Equal(that interface{}) bool {
-	if that == nil {
-		if this == nil {
-			return true
-		}
-		return false
-	}
-
-	that1, ok := that.(*ClientOffline)
-	if !ok {
-		that2, ok := that.(ClientOffline)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return true
-		}
-		return false
-	} else if this == nil {
-		return false
-	}
-	if this.Uid != that1.Uid {
+	if !bytes.Equal(this.Body, that1.Body) {
 		return false
 	}
 	return true
@@ -240,23 +193,13 @@ func (this *ClientMessageRsp) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *ClientOnline) GoString() string {
+func (this *ClientCloseRsq) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 5)
-	s = append(s, "&pbgo.ClientOnline{")
-	s = append(s, "Uid: "+fmt.Sprintf("%#v", this.Uid)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *ClientOffline) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&pbgo.ClientOffline{")
-	s = append(s, "Uid: "+fmt.Sprintf("%#v", this.Uid)+",\n")
+	s = append(s, "&pbgo.ClientCloseRsq{")
+	s = append(s, "Body: "+fmt.Sprintf("%#v", this.Body)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -322,7 +265,7 @@ func (m *ClientMessageRsp) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ClientOnline) Marshal() (dAtA []byte, err error) {
+func (m *ClientCloseRsq) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -332,40 +275,16 @@ func (m *ClientOnline) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ClientOnline) MarshalTo(dAtA []byte) (int, error) {
+func (m *ClientCloseRsq) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.Uid) > 0 {
-		dAtA[i] = 0x12
+	if len(m.Body) > 0 {
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintClient(dAtA, i, uint64(len(m.Uid)))
-		i += copy(dAtA[i:], m.Uid)
-	}
-	return i, nil
-}
-
-func (m *ClientOffline) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ClientOffline) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Uid) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintClient(dAtA, i, uint64(len(m.Uid)))
-		i += copy(dAtA[i:], m.Uid)
+		i = encodeVarintClient(dAtA, i, uint64(len(m.Body)))
+		i += copy(dAtA[i:], m.Body)
 	}
 	return i, nil
 }
@@ -421,20 +340,10 @@ func (m *ClientMessageRsp) Size() (n int) {
 	return n
 }
 
-func (m *ClientOnline) Size() (n int) {
+func (m *ClientCloseRsq) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Uid)
-	if l > 0 {
-		n += 1 + l + sovClient(uint64(l))
-	}
-	return n
-}
-
-func (m *ClientOffline) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Uid)
+	l = len(m.Body)
 	if l > 0 {
 		n += 1 + l + sovClient(uint64(l))
 	}
@@ -475,22 +384,12 @@ func (this *ClientMessageRsp) String() string {
 	}, "")
 	return s
 }
-func (this *ClientOnline) String() string {
+func (this *ClientCloseRsq) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&ClientOnline{`,
-		`Uid:` + fmt.Sprintf("%v", this.Uid) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *ClientOffline) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&ClientOffline{`,
-		`Uid:` + fmt.Sprintf("%v", this.Uid) + `,`,
+	s := strings.Join([]string{`&ClientCloseRsq{`,
+		`Body:` + fmt.Sprintf("%v", this.Body) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -694,7 +593,7 @@ func (m *ClientMessageRsp) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *ClientOnline) Unmarshal(dAtA []byte) error {
+func (m *ClientCloseRsq) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -717,17 +616,17 @@ func (m *ClientOnline) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ClientOnline: wiretype end group for non-group")
+			return fmt.Errorf("proto: ClientCloseRsq: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ClientOnline: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ClientCloseRsq: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 2:
+		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Uid", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Body", wireType)
 			}
-			var stringLen uint64
+			var byteLen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowClient
@@ -737,99 +636,22 @@ func (m *ClientOnline) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				byteLen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if byteLen < 0 {
 				return ErrInvalidLengthClient
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + byteLen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Uid = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipClient(dAtA[iNdEx:])
-			if err != nil {
-				return err
+			m.Body = append(m.Body[:0], dAtA[iNdEx:postIndex]...)
+			if m.Body == nil {
+				m.Body = []byte{}
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthClient
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *ClientOffline) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowClient
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ClientOffline: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ClientOffline: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Uid", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowClient
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthClient
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Uid = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -960,17 +782,16 @@ var (
 func init() { proto.RegisterFile("client.proto", fileDescriptorClient) }
 
 var fileDescriptorClient = []byte{
-	// 179 bytes of a gzipped FileDescriptorProto
+	// 171 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x49, 0xce, 0xc9, 0x4c,
 	0xcd, 0x2b, 0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x29, 0x48, 0x4a, 0xcf, 0x57, 0xb2,
 	0xe0, 0x12, 0x70, 0x06, 0x8b, 0xfa, 0xa6, 0x16, 0x17, 0x27, 0xa6, 0xa7, 0x06, 0xa5, 0x16, 0x0a,
 	0x09, 0x71, 0xb1, 0x38, 0xe5, 0xa7, 0x54, 0x4a, 0x30, 0x2a, 0x30, 0x6a, 0xf0, 0x04, 0x81, 0xd9,
 	0x42, 0x02, 0x5c, 0xcc, 0xa1, 0x99, 0x29, 0x12, 0x4c, 0x0a, 0x8c, 0x1a, 0x9c, 0x41, 0x20, 0xa6,
-	0x92, 0x1a, 0xba, 0xce, 0xe2, 0x02, 0x6c, 0x3a, 0x95, 0x14, 0xb8, 0x78, 0x20, 0xea, 0xfc, 0xf3,
-	0x72, 0x32, 0xf3, 0x52, 0xb1, 0x98, 0xa4, 0xc8, 0xc5, 0x0b, 0x55, 0x91, 0x96, 0x86, 0x5d, 0x89,
-	0x93, 0xce, 0x85, 0x87, 0x72, 0x0c, 0x37, 0x1e, 0xca, 0x31, 0x7c, 0x78, 0x28, 0xc7, 0xd8, 0xf0,
-	0x48, 0x8e, 0x71, 0xc5, 0x23, 0x39, 0xc6, 0x13, 0x8f, 0xe4, 0x18, 0x2f, 0x3c, 0x92, 0x63, 0x7c,
-	0xf0, 0x48, 0x8e, 0xf1, 0xc5, 0x23, 0x39, 0x86, 0x0f, 0x8f, 0xe4, 0x18, 0x27, 0x3c, 0x96, 0x63,
-	0x48, 0x62, 0x03, 0xfb, 0xd0, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0xe3, 0xb0, 0xc4, 0xae, 0xf1,
-	0x00, 0x00, 0x00,
+	0x92, 0x1a, 0xba, 0xce, 0xe2, 0x02, 0x6c, 0x3a, 0x95, 0x54, 0xb8, 0xf8, 0x20, 0xea, 0x9c, 0x73,
+	0xf2, 0x8b, 0x53, 0x83, 0x8a, 0xb1, 0x9a, 0xef, 0xa4, 0x73, 0xe1, 0xa1, 0x1c, 0xc3, 0x8d, 0x87,
+	0x72, 0x0c, 0x1f, 0x1e, 0xca, 0x31, 0x36, 0x3c, 0x92, 0x63, 0x5c, 0xf1, 0x48, 0x8e, 0xf1, 0xc4,
+	0x23, 0x39, 0xc6, 0x0b, 0x8f, 0xe4, 0x18, 0x1f, 0x3c, 0x92, 0x63, 0x7c, 0xf1, 0x48, 0x8e, 0xe1,
+	0xc3, 0x23, 0x39, 0xc6, 0x09, 0x8f, 0xe5, 0x18, 0x92, 0xd8, 0xc0, 0x5e, 0x30, 0x06, 0x04, 0x00,
+	0x00, 0xff, 0xff, 0xbe, 0x04, 0x96, 0x17, 0xd2, 0x00, 0x00, 0x00,
 }

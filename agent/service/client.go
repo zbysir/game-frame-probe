@@ -35,7 +35,8 @@ func (p *ClientActor) Receive(context actor.Context) {
 		if err != nil {
 			log.ErrorT("c", err)
 		}
-	case *ClientClose:
+	case *pbgo.ClientCloseRsq:
+		p.Conn.WriteSync(msg.Body)
 		p.Conn.Close()
 	}
 }
@@ -45,9 +46,10 @@ type ClientReq struct {
 }
 
 type ClientContext struct {
-	Request *ClientReq
-	data    map[string]interface{}
-	l       *sync.RWMutex
+	Request   *ClientReq // 客服端请求
+	ClientPid *actor.PID // 实现直接返回消息
+	data      map[string]interface{}
+	l         *sync.RWMutex
 }
 
 func (p *ClientContext) SetValue(key string, value interface{}) {
@@ -78,13 +80,6 @@ type ClientHandler struct {
 
 func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 	clientPid := actor.Spawn(actor.FromInstance(&ClientActor{Conn: conn}))
-	//
-	//rsp, err := p.agentPid.RequestFuture(&act.ClientConnReq{}, 3*time.Second).Result()
-	//if err != nil {
-	//	conn.Close()
-	//	return
-	//}
-	//agent := (rsp.(*act.ClientConnRsp)).AgentPid
 
 	firstMsg := make(chan struct{})
 	// 5s没消息就关闭连接
@@ -92,14 +87,17 @@ func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 		select {
 		case <-firstMsg:
 		case <-time.After(5 * time.Second):
-			conn.Close()
+			clientPid.Tell(&pbgo.ClientCloseRsq{Body: []byte("timeout of auth")})
 		}
 	}()
 
 	// 一个请求一个上下文, 用来存储登录信息等
-	ctx := &ClientContext{}
+	ctx := &ClientContext{
+		ClientPid: clientPid,
+	}
 
 	go func() {
+		// 读一次, 用来实现超时没消息关闭
 		bs, err := conn.Read()
 		close(firstMsg)
 		if err != nil {
@@ -109,7 +107,7 @@ func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 		serverPid, message, err := p.router.RouteClient(ctx, stdServerGroups)
 		if err != nil {
 			log.ErrorT(TAG, err)
-		} else {
+		} else if serverPid != nil {
 			serverPid.Request(message, clientPid)
 		}
 
@@ -123,8 +121,9 @@ func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 			if err != nil {
 				log.ErrorT(TAG, err)
 				continue
+			} else if serverPid != nil {
+				serverPid.Request(message, clientPid)
 			}
-			serverPid.Request(message, clientPid)
 		}
 
 	}()

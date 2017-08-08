@@ -9,8 +9,8 @@ message AgentConnectReq {
 message AgentConnectRsp {
 }
 
-// 转发到Node unused
-message AgentForwardToNode {
+// 转发到服务器集群
+message AgentForwardToSrv {
     string ServerType = 1;
     bytes Body = 2;
 }

@@ -11,12 +11,8 @@ message ClientMessageRsp {
     bytes Body = 1;
 }
 
-// 客户端上线
-message ClientOnline {
-    string Uid = 2;
+// 请求关闭客服端连接
+message ClientCloseRsq {
+    bytes Body = 1;
 }
 
-// 客户端上线
-message ClientOffline {
-    string Uid = 2;
-}

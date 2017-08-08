@@ -13,7 +13,7 @@ type AgentActor struct {
 
 func (p *AgentActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *pbgo.AgentForwardToSvr:
+	case *pbgo.AgentForwardToSrv:
 		// 服务器之间转发消息
 		serverPid, message, err := p.router.RouteServer(msg, stdServerGroups)
 		if err != nil {

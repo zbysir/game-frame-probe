@@ -11,6 +11,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"strings"
 	"github.com/bysir-zl/bygo/log"
+	"github.com/bysir-zl/bygo/util/discovery"
 )
 
 const TAG = "agent"
@@ -22,7 +23,7 @@ var (
 )
 
 type Server struct {
-	Server *service.Server
+	Server *discovery.Server
 	*actor.PID
 }
 
@@ -46,8 +47,8 @@ func (p ServerGroups) SelectServer(serverType string) (server *Server, ok bool) 
 }
 
 type ServerChange struct {
-	server *service.Server
-	change service.ServerChange
+	server *discovery.Server
+	change discovery.ServerChange
 }
 
 var (
@@ -69,11 +70,10 @@ func GetServers(serverType string) (servers map[string]*Server, has bool) {
 	return
 }
 
-func OnServerChange(msg *ServerChange) {
-	server := msg.server
+func OnServerChange(server *discovery.Server,change discovery.ServerChange) {
 	id := server.Id
-	switch msg.change {
-	case service.SC_Online:
+	switch change {
+	case discovery.SC_Online:
 		serverAddr := fmt.Sprintf("%s:%d", server.Address, server.Port)
 		// 不要连接自己
 		if serverAddr == fmt.Sprintf("%s:%d", addr, port) {
@@ -91,7 +91,7 @@ func OnServerChange(msg *ServerChange) {
 		}
 		log.InfoT(TAG, "server %s is readied", id)
 
-	case service.SC_Offline:
+	case discovery.SC_Offline:
 		serverType := getServerTypeFromId(id)
 		if servers, ok := stdServerGroups[serverType]; ok {
 			delete(servers, server.Id)
@@ -115,8 +115,7 @@ func Run() {
 	serverCli(agentPid, router)
 
 	// 注册服务
-	manager := service.NewManagerEtcd()
-	lease, err := manager.RegisterService(&service.Server{
+	lease, err := service.Discoverer.RegisterService(&discovery.Server{
 		Id:      id,
 		Name:    id,
 		Address: addr,
@@ -127,13 +126,10 @@ func Run() {
 	}
 
 	// 监听服务变化
-	manager.WatchServer(func(server *service.Server, change service.ServerChange) {
-		OnServerChange(&ServerChange{server: server, change: change})
-		return
-	})
+	service.Discoverer.WatchServer(OnServerChange)
 
 	for range time.Tick(time.Second * 5) {
-		manager.UpdateServerTTL(lease)
+		service.Discoverer.UpdateServerTTL(lease)
 	}
 }
 

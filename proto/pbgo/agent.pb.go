@@ -10,11 +10,12 @@
 		game.proto
 
 	It has these top-level messages:
-		AgentForwardToSvr
+		AgentConnectReq
+		AgentConnectRsp
+		AgentForwardToSrv
 		ClientMessageReq
 		ClientMessageRsp
-		ClientOnline
-		ClientOffline
+		ClientCloseRsq
 		GamePlayerAction
 */
 package pbgo
@@ -41,24 +42,40 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
-// 转发到服务器 unused
-type AgentForwardToSvr struct {
+// 网关向节点连接
+type AgentConnectReq struct {
+}
+
+func (m *AgentConnectReq) Reset()                    { *m = AgentConnectReq{} }
+func (*AgentConnectReq) ProtoMessage()               {}
+func (*AgentConnectReq) Descriptor() ([]byte, []int) { return fileDescriptorAgent, []int{0} }
+
+// 节点向网关响应
+type AgentConnectRsp struct {
+}
+
+func (m *AgentConnectRsp) Reset()                    { *m = AgentConnectRsp{} }
+func (*AgentConnectRsp) ProtoMessage()               {}
+func (*AgentConnectRsp) Descriptor() ([]byte, []int) { return fileDescriptorAgent, []int{1} }
+
+// 转发到服务器集群
+type AgentForwardToSrv struct {
 	ServerType string `protobuf:"bytes,1,opt,name=ServerType,proto3" json:"ServerType,omitempty"`
 	Body       []byte `protobuf:"bytes,2,opt,name=Body,proto3" json:"Body,omitempty"`
 }
 
-func (m *AgentForwardToSvr) Reset()                    { *m = AgentForwardToSvr{} }
-func (*AgentForwardToSvr) ProtoMessage()               {}
-func (*AgentForwardToSvr) Descriptor() ([]byte, []int) { return fileDescriptorAgent, []int{0} }
+func (m *AgentForwardToSrv) Reset()                    { *m = AgentForwardToSrv{} }
+func (*AgentForwardToSrv) ProtoMessage()               {}
+func (*AgentForwardToSrv) Descriptor() ([]byte, []int) { return fileDescriptorAgent, []int{2} }
 
-func (m *AgentForwardToSvr) GetServerType() string {
+func (m *AgentForwardToSrv) GetServerType() string {
 	if m != nil {
 		return m.ServerType
 	}
 	return ""
 }
 
-func (m *AgentForwardToSvr) GetBody() []byte {
+func (m *AgentForwardToSrv) GetBody() []byte {
 	if m != nil {
 		return m.Body
 	}
@@ -66,9 +83,11 @@ func (m *AgentForwardToSvr) GetBody() []byte {
 }
 
 func init() {
-	proto.RegisterType((*AgentForwardToSvr)(nil), "pbgo.AgentForwardToSvr")
+	proto.RegisterType((*AgentConnectReq)(nil), "pbgo.AgentConnectReq")
+	proto.RegisterType((*AgentConnectRsp)(nil), "pbgo.AgentConnectRsp")
+	proto.RegisterType((*AgentForwardToSrv)(nil), "pbgo.AgentForwardToSrv")
 }
-func (this *AgentForwardToSvr) Equal(that interface{}) bool {
+func (this *AgentConnectReq) Equal(that interface{}) bool {
 	if that == nil {
 		if this == nil {
 			return true
@@ -76,9 +95,63 @@ func (this *AgentForwardToSvr) Equal(that interface{}) bool {
 		return false
 	}
 
-	that1, ok := that.(*AgentForwardToSvr)
+	that1, ok := that.(*AgentConnectReq)
 	if !ok {
-		that2, ok := that.(AgentForwardToSvr)
+		that2, ok := that.(AgentConnectReq)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	return true
+}
+func (this *AgentConnectRsp) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*AgentConnectRsp)
+	if !ok {
+		that2, ok := that.(AgentConnectRsp)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	return true
+}
+func (this *AgentForwardToSrv) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*AgentForwardToSrv)
+	if !ok {
+		that2, ok := that.(AgentForwardToSrv)
 		if ok {
 			that1 = &that2
 		} else {
@@ -101,12 +174,30 @@ func (this *AgentForwardToSvr) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *AgentForwardToSvr) GoString() string {
+func (this *AgentConnectReq) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 4)
+	s = append(s, "&pbgo.AgentConnectReq{")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *AgentConnectRsp) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 4)
+	s = append(s, "&pbgo.AgentConnectRsp{")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *AgentForwardToSrv) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 6)
-	s = append(s, "&pbgo.AgentForwardToSvr{")
+	s = append(s, "&pbgo.AgentForwardToSrv{")
 	s = append(s, "ServerType: "+fmt.Sprintf("%#v", this.ServerType)+",\n")
 	s = append(s, "Body: "+fmt.Sprintf("%#v", this.Body)+",\n")
 	s = append(s, "}")
@@ -120,7 +211,7 @@ func valueToGoStringAgent(v interface{}, typ string) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
 }
-func (m *AgentForwardToSvr) Marshal() (dAtA []byte, err error) {
+func (m *AgentConnectReq) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -130,7 +221,43 @@ func (m *AgentForwardToSvr) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *AgentForwardToSvr) MarshalTo(dAtA []byte) (int, error) {
+func (m *AgentConnectReq) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
+func (m *AgentConnectRsp) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AgentConnectRsp) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
+func (m *AgentForwardToSrv) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AgentForwardToSrv) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -177,7 +304,19 @@ func encodeVarintAgent(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return offset + 1
 }
-func (m *AgentForwardToSvr) Size() (n int) {
+func (m *AgentConnectReq) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
+func (m *AgentConnectRsp) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
+func (m *AgentForwardToSrv) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.ServerType)
@@ -204,11 +343,29 @@ func sovAgent(x uint64) (n int) {
 func sozAgent(x uint64) (n int) {
 	return sovAgent(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (this *AgentForwardToSvr) String() string {
+func (this *AgentConnectReq) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&AgentForwardToSvr{`,
+	s := strings.Join([]string{`&AgentConnectReq{`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *AgentConnectRsp) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&AgentConnectRsp{`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *AgentForwardToSrv) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&AgentForwardToSrv{`,
 		`ServerType:` + fmt.Sprintf("%v", this.ServerType) + `,`,
 		`Body:` + fmt.Sprintf("%v", this.Body) + `,`,
 		`}`,
@@ -223,7 +380,7 @@ func valueToStringAgent(v interface{}) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
 }
-func (m *AgentForwardToSvr) Unmarshal(dAtA []byte) error {
+func (m *AgentConnectReq) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -246,10 +403,110 @@ func (m *AgentForwardToSvr) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: AgentForwardToSvr: wiretype end group for non-group")
+			return fmt.Errorf("proto: AgentConnectReq: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AgentForwardToSvr: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: AgentConnectReq: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipAgent(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthAgent
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *AgentConnectRsp) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowAgent
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AgentConnectRsp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AgentConnectRsp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipAgent(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthAgent
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *AgentForwardToSrv) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowAgent
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AgentForwardToSrv: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AgentForwardToSrv: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -441,15 +698,16 @@ var (
 func init() { proto.RegisterFile("agent.proto", fileDescriptorAgent) }
 
 var fileDescriptorAgent = []byte{
-	// 156 bytes of a gzipped FileDescriptorProto
+	// 175 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4e, 0x4c, 0x4f, 0xcd,
-	0x2b, 0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x29, 0x48, 0x4a, 0xcf, 0x57, 0x72, 0xe7,
-	0x12, 0x74, 0x04, 0x09, 0xba, 0xe5, 0x17, 0x95, 0x27, 0x16, 0xa5, 0x84, 0xe4, 0x07, 0x97, 0x15,
-	0x09, 0xc9, 0x71, 0x71, 0x05, 0xa7, 0x16, 0x95, 0xa5, 0x16, 0x85, 0x54, 0x16, 0xa4, 0x4a, 0x30,
-	0x2a, 0x30, 0x6a, 0x70, 0x06, 0x21, 0x89, 0x08, 0x09, 0x71, 0xb1, 0x38, 0xe5, 0xa7, 0x54, 0x4a,
-	0x30, 0x29, 0x30, 0x6a, 0xf0, 0x04, 0x81, 0xd9, 0x4e, 0x3a, 0x17, 0x1e, 0xca, 0x31, 0xdc, 0x78,
-	0x28, 0xc7, 0xf0, 0xe1, 0xa1, 0x1c, 0x63, 0xc3, 0x23, 0x39, 0xc6, 0x15, 0x8f, 0xe4, 0x18, 0x4f,
-	0x3c, 0x92, 0x63, 0xbc, 0xf0, 0x48, 0x8e, 0xf1, 0xc1, 0x23, 0x39, 0xc6, 0x17, 0x8f, 0xe4, 0x18,
-	0x3e, 0x3c, 0x92, 0x63, 0x9c, 0xf0, 0x58, 0x8e, 0x21, 0x89, 0x0d, 0xec, 0x06, 0x63, 0x40, 0x00,
-	0x00, 0x00, 0xff, 0xff, 0x0d, 0xfd, 0x78, 0xb4, 0x92, 0x00, 0x00, 0x00,
+	0x2b, 0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x29, 0x48, 0x4a, 0xcf, 0x57, 0x12, 0xe4,
+	0xe2, 0x77, 0x04, 0x09, 0x3a, 0xe7, 0xe7, 0xe5, 0xa5, 0x26, 0x97, 0x04, 0xa5, 0x16, 0x62, 0x08,
+	0x15, 0x17, 0x28, 0xb9, 0x73, 0x09, 0x82, 0x85, 0xdc, 0xf2, 0x8b, 0xca, 0x13, 0x8b, 0x52, 0x42,
+	0xf2, 0x83, 0x8b, 0xca, 0x84, 0xe4, 0xb8, 0xb8, 0x82, 0x53, 0x8b, 0xca, 0x52, 0x8b, 0x42, 0x2a,
+	0x0b, 0x52, 0x25, 0x18, 0x15, 0x18, 0x35, 0x38, 0x83, 0x90, 0x44, 0x84, 0x84, 0xb8, 0x58, 0x9c,
+	0xf2, 0x53, 0x2a, 0x25, 0x98, 0x14, 0x18, 0x35, 0x78, 0x82, 0xc0, 0x6c, 0x27, 0x9d, 0x0b, 0x0f,
+	0xe5, 0x18, 0x6e, 0x3c, 0x94, 0x63, 0xf8, 0xf0, 0x50, 0x8e, 0xb1, 0xe1, 0x91, 0x1c, 0xe3, 0x8a,
+	0x47, 0x72, 0x8c, 0x27, 0x1e, 0xc9, 0x31, 0x5e, 0x78, 0x24, 0xc7, 0xf8, 0xe0, 0x91, 0x1c, 0xe3,
+	0x8b, 0x47, 0x72, 0x0c, 0x1f, 0x1e, 0xc9, 0x31, 0x4e, 0x78, 0x2c, 0xc7, 0x90, 0xc4, 0x06, 0x76,
+	0xa9, 0x31, 0x20, 0x00, 0x00, 0xff, 0xff, 0x6c, 0xdd, 0xf1, 0xd3, 0xb8, 0x00, 0x00, 0x00,
 }
