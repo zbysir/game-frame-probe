@@ -8,6 +8,7 @@
 		agent.proto
 		client.proto
 		game.proto
+		server.proto
 
 	It has these top-level messages:
 		AgentConnectReq
@@ -17,6 +18,8 @@
 		ClientMessageRsp
 		ClientCloseRsq
 		GamePlayerAction
+		GetServerClientActorReq
+		GetServerClientActorRsp
 */
 package pbgo
 

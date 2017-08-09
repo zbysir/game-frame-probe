@@ -12,6 +12,8 @@ import (
 	"strings"
 	"github.com/bysir-zl/bygo/log"
 	"github.com/bysir-zl/bygo/util/discovery"
+	"errors"
+	"github.com/bysir-zl/game-frame-probe/proto/pbgo"
 )
 
 const TAG = "agent"
@@ -36,14 +38,34 @@ func (p ServerGroups) SelectServer(serverType string) (server *Server, ok bool) 
 	if servers, has := p[serverType]; has {
 		if len(servers) != 0 {
 			for _, s := range servers {
-				// todo 这里可能需要返回服务器Pid的子Pid去处理用户请求, 但是这里每次都新建一个PID? 想一想
 				server = s
 				ok = true
 				return
 			}
 		}
 	}
-	return 
+	return
+}
+
+// 获取为客户端服务的服务器actor
+// 比如在客户端进入房间的时候, 房间服务器应当根据是否有这个房间的actor而创建或者返回actor, 
+// 多个actor的好处就是能分别处理房间内的消息, 各不相干.
+func (p ServerGroups) GetServerActorForClient(uid string, serverType string) (serverPid *actor.PID, err error) {
+	serverManager, ok := p.SelectServer(serverType)
+	if !ok {
+		err = errors.New("404")
+		return
+	}
+
+	rsp, err := serverManager.RequestFuture(&pbgo.GetServerClientActorReq{
+		Uid: uid,
+	}, time.Second*3).Result()
+	if err != nil {
+		return
+	}
+
+	serverPid = (rsp.(*pbgo.GetServerClientActorRsp)).Pid
+	return
 }
 
 type ServerChange struct {
@@ -70,7 +92,7 @@ func GetServers(serverType string) (servers map[string]*Server, has bool) {
 	return
 }
 
-func OnServerChange(server *discovery.Server,change discovery.ServerChange) {
+func OnServerChange(server *discovery.Server, change discovery.ServerChange) {
 	id := server.Id
 	switch change {
 	case discovery.SC_Online:

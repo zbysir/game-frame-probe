@@ -73,6 +73,17 @@ func (p *ClientContext) GetValue(key string) (value interface{}, ok bool) {
 	return
 }
 
+func (p *ClientContext) DelValue(key string) {
+	if p.data == nil {
+		return
+	}
+
+	p.l.Lock()
+	delete(p.data, key)
+	p.l.Unlock()
+	return
+}
+
 type ClientHandler struct {
 	agentPid *actor.PID
 	router   *Router
@@ -104,28 +115,16 @@ func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 			return
 		}
 		ctx.Request = &ClientReq{Body: bs}
-		serverPid, message, err := p.router.RouteClient(ctx, stdServerGroups)
+
+	handle:
+		p.router.RouteClient(ctx, stdServerGroups)
+
+		bs, err = conn.Read()
 		if err != nil {
-			log.ErrorT(TAG, err)
-		} else if serverPid != nil {
-			serverPid.Request(message, clientPid)
+			return
 		}
-
-		for {
-			bs, err := conn.Read()
-			if err != nil {
-				return
-			}
-			ctx.Request = &ClientReq{Body: bs}
-			serverPid, message, err := p.router.RouteClient(ctx, stdServerGroups)
-			if err != nil {
-				log.ErrorT(TAG, err)
-				continue
-			} else if serverPid != nil {
-				serverPid.Request(message, clientPid)
-			}
-		}
-
+		ctx.Request = &ClientReq{Body: bs}
+		goto handle
 	}()
 
 	return

@@ -4,7 +4,10 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"errors"
 	"github.com/bysir-zl/game-frame-probe/proto/pbgo"
-	"encoding/json"
+	"github.com/bysir-zl/game-frame-probe/common"
+	"github.com/bysir-zl/game-frame-probe/common/client_msg"
+	"github.com/bysir-zl/bygo/log"
+	"github.com/gogo/protobuf/proto"
 )
 
 var stdRouter = &Router{}
@@ -12,34 +15,57 @@ var stdRouter = &Router{}
 type Router struct {
 }
 
-type ClientMessage struct {
-	Cmd  int `json:"cmd"`
-	Body string `json:"body"`
-}
+// 获取消息应当转发给的服务器
+func (p *Router) GetClientMessageServerType(ctx *ClientContext) (serverType string, uid string, shouldForward bool) {
+	serverType = ""
 
-const (
-	Cmd_Login = iota + 1
-	Cmd_Game  
-	Cmd_Room  
-)
+	clientMessage := client_msg.GetProto(ctx.Request.Body)
+	uidX, ok := ctx.GetValue("uid")
+	if ok {
+		uid = uidX.(string)
+	}
 
-// 请求路由
-// 用户请求
-func (p *Router) RouteClient(ctx *ClientContext, servers ServerGroups) (serverPid *actor.PID, message interface{}, err error) {
-	serverType := ""
-
-	clientMessage := ClientMessage{}
-	json.Unmarshal(ctx.Request.Body, &clientMessage)
 	switch clientMessage.Cmd {
-	case Cmd_Login:
+	case common.CMD_Login:
 		// 用户登录
 		ctx.SetValue("uid", clientMessage.Body)
 		ctx.ClientPid.Tell(&pbgo.ClientMessageRsp{
 			Body: []byte(`{"cmd":1,"body":"200"}`),
 		})
 		return
-		
-	case Cmd_Game:
+
+	case common.CMD_JoinRoom, common.CMD_InitPlayer, common.CMD_Move:
+		// 应该转发到game
+		if uidX == "" {
+			ctx.ClientPid.Tell(&pbgo.ClientCloseRsq{
+				Body: []byte(`{"cmd":1,"body":"bad message"}`),
+			})
+			return
+		}
+		serverType = "game"
+	}
+
+	shouldForward = true
+	return
+}
+
+// 请求路由
+// 用户请求
+func (p *Router) RouteClient(ctx *ClientContext, servers ServerGroups) {
+	serverType := ""
+	var message proto.Message
+
+	clientMessage := client_msg.GetProto(ctx.Request.Body)
+	switch clientMessage.Cmd {
+	case common.CMD_Login:
+		// 用户登录
+		ctx.SetValue("uid", clientMessage.Body)
+		ctx.ClientPid.Tell(&pbgo.ClientMessageRsp{
+			Body: []byte(`{"cmd":1,"body":"200"}`),
+		})
+		return
+
+	case common.CMD_JoinRoom, common.CMD_InitPlayer, common.CMD_Move:
 		uid, ok := ctx.GetValue("uid")
 		if !ok {
 			ctx.ClientPid.Tell(&pbgo.ClientCloseRsq{
@@ -49,7 +75,7 @@ func (p *Router) RouteClient(ctx *ClientContext, servers ServerGroups) (serverPi
 		}
 		message = &pbgo.ClientMessageReq{Body: ctx.Request.Body, Uid: uid.(string)}
 		serverType = "game"
-	case Cmd_Room:
+	case 10086:
 		uid, ok := ctx.GetValue("uid")
 		if !ok {
 			ctx.ClientPid.Tell(&pbgo.ClientCloseRsq{
@@ -63,10 +89,10 @@ func (p *Router) RouteClient(ctx *ClientContext, servers ServerGroups) (serverPi
 
 	server, ok := servers.SelectServer(serverType)
 	if !ok {
-		err = errors.New("404")
+		log.ErrorT(TAG, "not found game type of "+serverType)
 		return
 	}
-	serverPid = server.PID
+	server.PID.Request(message, ctx.ClientPid)
 
 	return
 }

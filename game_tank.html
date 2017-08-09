@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tank</title>
+    <script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://unpkg.com/vue/dist/vue.js"></script>
+</head>
+<body>
+<div id="app">
+    <button @click="reConn">reConn</button>
+    <button @click="messages=[];sends=[]">clear</button>
+    <br>
+    <hr>
+    <button @click="sendLogin();sendJoinRoom()">joinRoom1</button>
+    
+    <hr>
+    <div class="game">
+        <div class="item" v-for="item in items" key="item.id"
+             :style="{top:item.y+'px',left:item.x+'px'}">
+            {{item.id}}({{item.x+','+item.y}})
+        </div>
+    </div>
+
+</div>
+</body>
+
+<script>
+    var cmdLogin = 1
+    var cmdJoinRoom = 100
+    var cmdMove=110
+    var cmdInitPlayer = 1000
+    var cmdLogic = 1100
+    
+    
+    var logicTime = (1 / 20)
+    var speed = 50
+
+    var ws = new WebSocket("ws://localhost:8081/");
+    var uid = window.location.hash.substr(1)
+    console.log(uid)
+
+    var messageHandle = function (e) {
+        var msg = JSON.parse(e.data)
+        var t = 0
+    
+        setTimeout(function(){
+            switch (msg.cmd){
+                case cmdLogic:
+                    // 逻辑帧处理
+                    var msgs = JSON.parse(msg.body)
+                    for (var i in msgs){
+                        msg = JSON.parse(msgs[i])
+                        switch (msg.cmd){
+                            case cmdInitPlayer:
+                                var player = JSON.parse(msg.body)
+
+                                var tank =new Tank()
+                                tank.x = player.x
+                                tank.y = player.y
+                                tank.speed = player.speed
+                                tank.angle = player.angle
+                                tank.id = player.id
+                                app.items.push(tank)
+
+                                break
+                            case cmdMove:
+                                var move = JSON.parse(msg.body)
+                                console.log(move)
+                                for (var i in app.items){
+                                    if (app.items[i].id== move.id){
+                                        app.items[i].speed = move.speed
+                                        app.items[i].angle = move.angle
+                                    }
+                                }
+
+                                break
+                        }
+                    }
+
+                    for (var i in app.items){
+                        app.items[i].updateXY()
+                    }
+
+                    break
+            }
+        },t)
+        
+       
+    }
+
+    function Tank() {
+        return{
+            id:0,
+            x: 1,
+            y: 1,
+            speed: 1,
+            angle: 0,
+            updateXY: function () {
+                
+                var ly = Math.sin(this.angle * Math.PI / 180) * this.speed * logicTime
+                var lx = Math.cos(this.angle * Math.PI / 180) * this.speed * logicTime
+
+                this.x += lx
+                this.y += ly
+            }
+        }
+    }
+    
+    ws.onmessage = messageHandle
+    
+    var app = new Vue({
+        el: '#app',
+        data: {
+            messages: [],
+            sends: [],
+            items: [],
+            cmd: 0,
+            body: '',
+        },
+        methods: {
+            send: function (cmd, body) {
+                var s = JSON.stringify({Cmd: cmd, Body: body})
+                app.sends.splice(0, 0, s)
+                ws.send(s)
+            },
+            sendDef: function () {
+                app.send(app.cmd, app.body)
+            },
+            sendJoinRoom:function(){
+                app.send(cmdJoinRoom,"1")
+            },
+            sendLogin: function () {
+                app.send(cmdLogin, uid)
+            },
+            reConn: function () {
+                ws = new WebSocket("ws://localhost:8081/");
+                ws.onmessage = messageHandle
+            },
+            
+        }
+    })
+
+    document.onkeydown = function (event) {
+        var body = JSON.stringify({angle:45,speed:speed})
+        app.send(cmdMove,body)
+    };
+
+    document.onkeyup = function (event) {
+        var body = JSON.stringify({angle:0,speed:0})
+        app.send(cmdMove,body)
+    };
+
+</script>
+
+<style>
+    html, body, #app {
+        height: 100%;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .item {
+        position: absolute;
+        top: 500px;
+        width: 30px;
+        height: 30px;
+        background-color: aquamarine;
+        transition: all 0.1s linear;
+    }
+    
+    .message {
+        width: 49%;
+        display: inline-block;
+        vertical-align: top;
+    }
+</style>
+</html>
