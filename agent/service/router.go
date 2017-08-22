@@ -73,6 +73,7 @@ func (p *Router) RouteClient(ctx *ClientContext, servers ServerGroups) {
 			})
 			return
 		}
+
 		message = &pbgo.ClientMessageReq{Body: ctx.Request.Body, Uid: uid.(string)}
 		serverType = "game"
 	case 10086:

@@ -9,6 +9,7 @@ import (
 	"github.com/bysir-zl/game-frame-probe/common"
 	"encoding/json"
 	"time"
+	"github.com/gogo/protobuf/proto"
 )
 
 type GameActorManager struct {
@@ -26,10 +27,19 @@ func (p *GameActorManager) Receive(ctx actor.Context) {
 		// 分配给指定的actor
 		if pid, ok := p.ClientShouldJoin[msg.Uid]; ok {
 			pid.Tell(msg)
+		} else {
+			// 应当从数据库获取得到这个用户应该给那个游戏actor通信
+			// 在pvp中, 在一起游戏(一个召唤师峡谷)的玩家应当在同一个actor.
+			shouldJoinGameId := "1"
+			pid, err := actor.SpawnNamed(actor.FromInstance(NewGameActor()), shouldJoinGameId)
+			if err != nil {
+				ctx.Respond(proto.ErrNil)
+				return
+			}
+			p.ClientShouldJoin[msg.Uid] = pid
 		}
-	case int:
-		pid, _ := actor.SpawnNamed(actor.FromInstance(NewGameActor()), TAG+"1")
-		p.ClientShouldJoin["1"] = pid
+
+	case *actor.Started:
 	}
 }
 
@@ -91,16 +101,9 @@ func (p *GameActor) Receive(ctx actor.Context) {
 					for _, p := range p.Players {
 						bs, _ := json.Marshal(&msgs)
 						rsp := client_msg.NewProto(common.CMD_Logic, bs)
-						log.InfoT("test", "rsp", string(rsp))
-						if p.Uid == "2" {
-							p.Tell(&pbgo.ClientMessageRsp{
-								Body: rsp,
-							})
-						} else {
-							p.Tell(&pbgo.ClientMessageRsp{
-								Body: rsp,
-							})
-						}
+						p.Tell(&pbgo.ClientMessageRsp{
+							Body: rsp,
+						})
 					}
 				}
 			}
