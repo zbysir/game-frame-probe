@@ -18,3 +18,9 @@ type Player struct {
 }
 
 
+type Broad struct {
+	Uid string `json:"id"`
+	Body string `json:"body"`
+}
+
+

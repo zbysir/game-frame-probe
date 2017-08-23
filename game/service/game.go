@@ -57,31 +57,29 @@ func (p *GameActor) Receive(ctx actor.Context) {
 		case common.CMD_JoinRoom:
 			player := Player{
 				Uid:   msg.Uid,
-				Point: Point{X: 1, Y: 1},
+				Point: Point{X: 50, Y: 50},
 				PID:   ctx.Sender(),
 			}
 			p.Players[msg.Uid] = &player
 
-			bs, _ := json.Marshal(&player)
+			bs, _ := json.Marshal(p.Players)
 			rsp := client_msg.NewProto(common.CMD_InitPlayer, bs)
 
 			p.ReadyBroadToPlayer(rsp)
-		case common.CMD_Move:
-			m := client_msg.GetMove(msg.Body)
-			player := Player{
-				Uid:   msg.Uid,
-				Angle: m.Angle,
-				Speed: m.Speed,
+		case common.CMD_Broad:
+			player := Broad{
+				Uid:  msg.Uid,
+				Body: string(msg.Body),
 			}
 			bs, _ := json.Marshal(&player)
-			rsp := client_msg.NewProto(common.CMD_Move, bs)
+			rsp := client_msg.NewProto(common.CMD_Broad, bs)
 
 			p.ReadyBroadToPlayer(rsp)
 		}
 	case *actor.Started:
 		go func() {
 			log.InfoT(TAG, "started")
-			t := time.NewTicker(time.Second / 20)
+			t := time.NewTicker(time.Second / 20) // ,每20分之一秒发布一个逻辑帧
 			for {
 				select {
 				case <-t.C:

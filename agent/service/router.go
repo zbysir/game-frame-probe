@@ -34,7 +34,7 @@ func (p *Router) GetClientMessageServerType(ctx *ClientContext) (serverType stri
 		})
 		return
 
-	case common.CMD_JoinRoom, common.CMD_InitPlayer, common.CMD_Move:
+	case common.CMD_JoinRoom, common.CMD_InitPlayer, common.CMD_Broad:
 		// 应该转发到game
 		if uidX == "" {
 			ctx.ClientPid.Tell(&pbgo.ClientCloseRsq{
@@ -61,11 +61,11 @@ func (p *Router) RouteClient(ctx *ClientContext, servers ServerGroups) {
 		// 用户登录
 		ctx.SetValue("uid", clientMessage.Body)
 		ctx.ClientPid.Tell(&pbgo.ClientMessageRsp{
-			Body: []byte(`{"cmd":1,"body":"200"}`),
+			Body: []byte(`{"cmd":1,"body":"200","uid":"`+clientMessage.Body+`"}`),
 		})
 		return
 
-	case common.CMD_JoinRoom, common.CMD_InitPlayer, common.CMD_Move:
+	case common.CMD_JoinRoom, common.CMD_InitPlayer, common.CMD_Broad:
 		uid, ok := ctx.GetValue("uid")
 		if !ok {
 			ctx.ClientPid.Tell(&pbgo.ClientCloseRsq{
