@@ -93,9 +93,9 @@ func (p *GameActor) Receive(ctx actor.Context) {
 						}
 					}
 				end:
-					if len(msgs) == 0 {
-						break
-					}
+					//if len(msgs) == 0 {
+					//	break
+					//}
 					for _, p := range p.Players {
 						bs, _ := json.Marshal(&msgs)
 						rsp := client_msg.NewProto(common.CMD_Logic, bs)
