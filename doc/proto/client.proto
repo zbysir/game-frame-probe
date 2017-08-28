@@ -1,0 +1,28 @@
+syntax = "proto3";
+package pbgo;
+
+// 消息
+message ClientMessageReq {
+    bytes Body = 1;
+    string Uid = 2;
+}
+
+message ClientMessageRsp {
+    bytes Body = 1;
+}
+
+// 连接
+message ClientConnectReq {
+    string Uid = 1;
+}
+
+// 断开连接
+message ClientDisconnectReq {
+    string Uid = 1;
+}
+
+// 请求关闭客服端连接
+message ClientCloseRsq {
+    string Uid = 1;
+}
+

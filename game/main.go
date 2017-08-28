@@ -1,7 +1,7 @@
 package main
 
-import "github.com/bysir-zl/game-frame-probe/game/service"
+import "github.com/bysir-zl/game-frame-probe/game/app"
 
 func main() {
-	service.Run()
+	app.Run()
 }

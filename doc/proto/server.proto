@@ -1,0 +1,14 @@
+// unused
+syntax = "proto3";
+package pbgo;
+import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
+
+// 获取为客户端服务的服务器Actor
+message GetServerClientActorReq {
+    string Uid = 1;
+}
+
+// 获取为客户端服务的服务器Actor
+message GetServerClientActorRsp {
+    actor.PID pid = 1;
+}
