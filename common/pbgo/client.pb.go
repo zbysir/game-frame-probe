@@ -90,20 +90,20 @@ func (m *ClientDisconnectReq) GetUid() string {
 	return ""
 }
 
-// 请求关闭客服端连接
+// 关闭客服端连接
 type ClientCloseRsq struct {
-	Uid string `protobuf:"bytes,1,opt,name=Uid,proto3" json:"Uid,omitempty"`
+	Body []byte `protobuf:"bytes,1,opt,name=Body,proto3" json:"Body,omitempty"`
 }
 
 func (m *ClientCloseRsq) Reset()                    { *m = ClientCloseRsq{} }
 func (*ClientCloseRsq) ProtoMessage()               {}
 func (*ClientCloseRsq) Descriptor() ([]byte, []int) { return fileDescriptorClient, []int{4} }
 
-func (m *ClientCloseRsq) GetUid() string {
+func (m *ClientCloseRsq) GetBody() []byte {
 	if m != nil {
-		return m.Uid
+		return m.Body
 	}
-	return ""
+	return nil
 }
 
 func init() {
@@ -261,7 +261,7 @@ func (this *ClientCloseRsq) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.Uid != that1.Uid {
+	if !bytes.Equal(this.Body, that1.Body) {
 		return false
 	}
 	return true
@@ -313,7 +313,7 @@ func (this *ClientCloseRsq) GoString() string {
 	}
 	s := make([]string, 0, 5)
 	s = append(s, "&pbgo.ClientCloseRsq{")
-	s = append(s, "Uid: "+fmt.Sprintf("%#v", this.Uid)+",\n")
+	s = append(s, "Body: "+fmt.Sprintf("%#v", this.Body)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -442,11 +442,11 @@ func (m *ClientCloseRsq) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Uid) > 0 {
+	if len(m.Body) > 0 {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintClient(dAtA, i, uint64(len(m.Uid)))
-		i += copy(dAtA[i:], m.Uid)
+		i = encodeVarintClient(dAtA, i, uint64(len(m.Body)))
+		i += copy(dAtA[i:], m.Body)
 	}
 	return i, nil
 }
@@ -525,7 +525,7 @@ func (m *ClientDisconnectReq) Size() (n int) {
 func (m *ClientCloseRsq) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Uid)
+	l = len(m.Body)
 	if l > 0 {
 		n += 1 + l + sovClient(uint64(l))
 	}
@@ -591,7 +591,7 @@ func (this *ClientCloseRsq) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ClientCloseRsq{`,
-		`Uid:` + fmt.Sprintf("%v", this.Uid) + `,`,
+		`Body:` + fmt.Sprintf("%v", this.Body) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -984,9 +984,9 @@ func (m *ClientCloseRsq) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Uid", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Body", wireType)
 			}
-			var stringLen uint64
+			var byteLen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowClient
@@ -996,20 +996,22 @@ func (m *ClientCloseRsq) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				byteLen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if byteLen < 0 {
 				return ErrInvalidLengthClient
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + byteLen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Uid = string(dAtA[iNdEx:postIndex])
+			m.Body = append(m.Body[:0], dAtA[iNdEx:postIndex]...)
+			if m.Body == nil {
+				m.Body = []byte{}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -1148,10 +1150,10 @@ var fileDescriptorClient = []byte{
 	0x42, 0x02, 0x5c, 0xcc, 0xa1, 0x99, 0x29, 0x12, 0x4c, 0x0a, 0x8c, 0x1a, 0x9c, 0x41, 0x20, 0xa6,
 	0x92, 0x1a, 0xba, 0xce, 0xe2, 0x02, 0x6c, 0x3a, 0x95, 0x54, 0x60, 0xea, 0x9c, 0xf3, 0xf3, 0xf2,
 	0x52, 0x93, 0x4b, 0x40, 0x36, 0x40, 0x4d, 0x63, 0x44, 0x98, 0xa6, 0xce, 0x25, 0x0c, 0x51, 0xe5,
-	0x92, 0x59, 0x9c, 0x8c, 0x4f, 0xa1, 0x12, 0x17, 0x1f, 0xd4, 0xb8, 0x9c, 0xfc, 0xe2, 0xd4, 0xa0,
-	0x62, 0x2c, 0x6a, 0x9c, 0x74, 0x2e, 0x3c, 0x94, 0x63, 0xb8, 0xf1, 0x50, 0x8e, 0xe1, 0xc3, 0x43,
-	0x39, 0xc6, 0x86, 0x47, 0x72, 0x8c, 0x2b, 0x1e, 0xc9, 0x31, 0x9e, 0x78, 0x24, 0xc7, 0x78, 0xe1,
-	0x91, 0x1c, 0xe3, 0x83, 0x47, 0x72, 0x8c, 0x2f, 0x1e, 0xc9, 0x31, 0x7c, 0x78, 0x24, 0xc7, 0x38,
-	0xe1, 0xb1, 0x1c, 0x43, 0x12, 0x1b, 0x38, 0x3c, 0x8c, 0x01, 0x01, 0x00, 0x00, 0xff, 0xff, 0xe9,
-	0x33, 0x25, 0x30, 0x1f, 0x01, 0x00, 0x00,
+	0x92, 0x59, 0x9c, 0x8c, 0x4f, 0xa1, 0x0a, 0x17, 0x1f, 0xd4, 0xb8, 0x9c, 0xfc, 0xe2, 0xd4, 0xa0,
+	0x62, 0xac, 0xce, 0x75, 0xd2, 0xb9, 0xf0, 0x50, 0x8e, 0xe1, 0xc6, 0x43, 0x39, 0x86, 0x0f, 0x0f,
+	0xe5, 0x18, 0x1b, 0x1e, 0xc9, 0x31, 0xae, 0x78, 0x24, 0xc7, 0x78, 0xe2, 0x91, 0x1c, 0xe3, 0x85,
+	0x47, 0x72, 0x8c, 0x0f, 0x1e, 0xc9, 0x31, 0xbe, 0x78, 0x24, 0xc7, 0xf0, 0xe1, 0x91, 0x1c, 0xe3,
+	0x84, 0xc7, 0x72, 0x0c, 0x49, 0x6c, 0xe0, 0x10, 0x31, 0x06, 0x04, 0x00, 0x00, 0xff, 0xff, 0xf9,
+	0x45, 0x77, 0xea, 0x21, 0x01, 0x00, 0x00,
 }

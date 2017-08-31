@@ -21,8 +21,8 @@ message ClientDisconnectReq {
     string Uid = 1;
 }
 
-// 请求关闭客服端连接
+// 关闭客服端连接
 message ClientCloseRsq {
-    string Uid = 1;
+    bytes Body = 1; // 关闭所附带的消息比如关闭理由
 }
 

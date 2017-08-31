@@ -3,7 +3,7 @@ package app
 import (
 	"github.com/bysir-zl/hubs/core/net/conn_wrap"
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/bysir-zl/game-frame-probe/proto/pbgo"
+	"github.com/bysir-zl/game-frame-probe/common/pbgo"
 	"github.com/bysir-zl/bygo/log"
 	"github.com/bysir-zl/hubs/core/hubs"
 	"time"
@@ -90,9 +90,11 @@ func (p *ClientContext) DelValue(key string) {
 
 // 通知节点断开连接
 func (p *ClientContext) Close() {
+	// 通知节点断开连接
 	for _, s := range p.ConnedServer {
 		s.Tell(&pbgo.ClientDisconnectReq{Uid: p.Uid})
 	}
+	// 通知关闭actor与连接
 	p.ClientPid.Tell(&pbgo.ClientCloseRsq{Body: []byte("timeout of auth")})
 }
 

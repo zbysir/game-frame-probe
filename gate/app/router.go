@@ -3,7 +3,7 @@ package app
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"errors"
-	"github.com/bysir-zl/game-frame-probe/proto/pbgo"
+	"github.com/bysir-zl/game-frame-probe/common/pbgo"
 	"github.com/bysir-zl/game-frame-probe/common"
 	"github.com/bysir-zl/game-frame-probe/common/client_msg"
 )

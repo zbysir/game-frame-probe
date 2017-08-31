@@ -2,7 +2,7 @@ package app
 
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/bysir-zl/game-frame-probe/proto/pbgo"
+	"github.com/bysir-zl/game-frame-probe/common/pbgo"
 	"reflect"
 	"github.com/bysir-zl/bygo/log"
 )
