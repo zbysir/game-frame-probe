@@ -15,14 +15,26 @@ type GameActorManager struct {
 func (p *GameActorManager) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *pbgo.ClientConnectReq:
+		// 在第一次客户端向这个节点发消息的时候会连接这个节点, 
+		// 如果本节点重启后, 也不再有此消息,
+		// 只有gate重启了,或者断线重连, 才会重新有此消息,
+		// 所以要down后恢复, 需要持久化p.ClientShouldJoin.
+
 		// 分配给指定的actor
 		if _, ok := p.ClientShouldJoin[msg.Uid]; !ok {
 			shouldJoinRoomId := "1"
 			p.ClientShouldJoin[msg.Uid] = shouldJoinRoomId
 		}
-		log.InfoT(TAG, "user", msg.Uid, "conned")
-
+		
+		pid, err := p.CreateOrFindGameActor(p.ClientShouldJoin[msg.Uid])
+		if err != nil {
+			log.ErrorT(TAG, err)
+			return
+		}
+		pid.Request(msg, ctx.Sender())
 	case *pbgo.ClientMessageReq:
+		// 每一个由客户端发送的消息
+
 		// 分配给指定的actor
 		if roomId, ok := p.ClientShouldJoin[msg.Uid]; ok {
 			pid, err := p.CreateOrFindGameActor(roomId)
@@ -31,18 +43,20 @@ func (p *GameActorManager) Receive(ctx actor.Context) {
 				return
 			}
 
-			pid.Tell(msg)
+			pid.Request(msg, ctx.Sender())
 		} else {
 			log.ErrorT(TAG, "Uid", msg.Uid, "not conned")
 		}
-	case *pbgo.ClientCloseRsq:
+	case *pbgo.ClientDisconnectReq:
+		// 当客户端关闭连接的消息
+
 		if roomId, ok := p.ClientShouldJoin[msg.Uid]; ok {
 			pid, err := p.CreateOrFindGameActor(roomId)
 			if err != nil {
 				log.ErrorT(TAG, err)
 				return
 			}
-			pid.Tell(msg)
+			pid.Request(msg, ctx.Sender())
 
 			delete(p.ClientShouldJoin, msg.Uid)
 		}

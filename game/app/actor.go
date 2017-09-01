@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const frameDuration = time.Second / 20
+const frameDuration = time.Second / 10
 
 // 一个房间一个actor
 type GameActor struct {
@@ -21,19 +21,27 @@ type GameActor struct {
 
 func (p *GameActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
+	case *pbgo.ClientConnectReq:
+		log.InfoT(TAG, "user", msg.Uid, "connected")
+	case *pbgo.ClientDisconnectReq:
+		delete(p.Players, msg.Uid)
+		log.InfoT(TAG, "user", msg.Uid, "disconnected")
 	case *pbgo.ClientMessageReq:
-		pt := client_msg.GetProto(msg.Body)
-		switch pt.Cmd {
-		case common.CMD_JoinRoom:
-			player := Player{
+		// 只要有消息就加入这个列表
+		if _, ok := p.Players[msg.Uid]; !ok {
+			p.Players[msg.Uid] = &Player{
 				Uid: msg.Uid,
 				PID: ctx.Sender(),
 			}
-			p.Players[msg.Uid] = &player
+		}
 
+		pt := client_msg.GetProto(msg.Body)
+		switch pt.Cmd {
+		case common.CMD_JoinRoom:
 			bs, _ := json.Marshal(p.Players)
 			rsp := client_msg.NewProto(common.CMD_InitPlayer, bs)
 
+			// 广播有人加入了房间
 			p.ReadyBroadToPlayer(rsp)
 		case common.CMD_Broad:
 			player := Broad{
@@ -43,12 +51,14 @@ func (p *GameActor) Receive(ctx actor.Context) {
 			bs, _ := json.Marshal(&player)
 			rsp := client_msg.NewProto(common.CMD_Broad, bs)
 
+			// 广播
 			p.ReadyBroadToPlayer(rsp)
 		}
 	case *actor.Started:
 		go func() {
 			log.InfoT(TAG, "started")
-			t := time.NewTicker(frameDuration) // 发送逻辑帧, 空帧也发
+			t := time.NewTicker(frameDuration)
+			// 发送逻辑帧, 空帧也发
 			for {
 				select {
 				case <-t.C:

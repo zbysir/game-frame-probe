@@ -23,6 +23,7 @@ message ClientDisconnectReq {
 
 // 关闭客服端连接
 message ClientCloseRsq {
-    bytes Body = 1; // 关闭所附带的消息比如关闭理由
+    string Uid = 1;
+    bytes Body = 2; // 关闭所附带的消息比如关闭理由
 }
 

@@ -50,7 +50,7 @@ type ClientReq struct {
 type ClientContext struct {
 	Uid          string             // 连接的唯一编号
 	Request      *ClientReq         // 客服端请求
-	ClientPid    *actor.PID         // 实现直接返回消息
+	Pid          *actor.PID         // 实现直接返回消息
 	ConnedServer map[string]*Server // 连接过的服务器, serverType->server 
 	data         map[string]interface{}
 	l            *sync.RWMutex
@@ -92,17 +92,18 @@ func (p *ClientContext) DelValue(key string) {
 func (p *ClientContext) Close() {
 	// 通知节点断开连接
 	for _, s := range p.ConnedServer {
-		s.Tell(&pbgo.ClientDisconnectReq{Uid: p.Uid})
+		s.Request(&pbgo.ClientDisconnectReq{Uid: p.Uid},p.Pid)
 	}
+	
 	// 通知关闭actor与连接
-	p.ClientPid.Tell(&pbgo.ClientCloseRsq{Body: []byte("timeout of auth")})
+	p.Pid.Tell(&pbgo.ClientCloseRsq{Body: []byte("timeout of auth")})
 }
 
 // 向节点发消息
 func (p *ClientContext) SendOrConnServer(serverType string, bs []byte) (err error) {
 	if s, ok := p.ConnedServer[serverType]; ok {
 		// 连接过, 就直接转发
-		s.Tell(&pbgo.ClientMessageReq{Uid: p.Uid, Body: bs})
+		s.Request(&pbgo.ClientMessageReq{Uid: p.Uid, Body: bs}, p.Pid)
 	} else {
 		// 没连接过 就找到服务, 连接并转发
 		s, ok := stdServerGroups.SelectServer(serverType)
@@ -110,8 +111,8 @@ func (p *ClientContext) SendOrConnServer(serverType string, bs []byte) (err erro
 			return errors.New("bad cmd, can't found server")
 		} else {
 			p.ConnedServer[serverType] = s
-			s.Tell(&pbgo.ClientConnectReq{Uid: p.Uid})
-			s.Tell(&pbgo.ClientMessageReq{Uid: p.Uid, Body: bs})
+			s.Request(&pbgo.ClientConnectReq{Uid: p.Uid}, p.Pid)
+			s.Request(&pbgo.ClientMessageReq{Uid: p.Uid, Body: bs}, p.Pid)
 		}
 	}
 
@@ -129,7 +130,7 @@ func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 
 	// 一个请求一个上下文, 用来存储登录信息等
 	ctx := &ClientContext{
-		ClientPid:    clientPid,
+		Pid:          clientPid,
 		ConnedServer: map[string]*Server{},
 	}
 

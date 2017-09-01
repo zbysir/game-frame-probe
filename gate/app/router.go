@@ -24,7 +24,7 @@ func (p *Router) RouteClient(ctx *ClientContext) (serverType string, shouldForwa
 		// 用户登录
 		ctx.Uid = clientMessage.Body
 		ctx.SetValue("uid", clientMessage.Body)
-		ctx.ClientPid.Tell(&pbgo.ClientMessageRsp{
+		ctx.Pid.Tell(&pbgo.ClientMessageRsp{
 			Body: []byte(`{"cmd":1,"body":"200"}`),
 		})
 		return
@@ -32,7 +32,7 @@ func (p *Router) RouteClient(ctx *ClientContext) (serverType string, shouldForwa
 	case common.CMD_JoinRoom, common.CMD_InitPlayer, common.CMD_Broad:
 		// 应该转发到game
 		if ctx.Uid == "" {
-			ctx.ClientPid.Tell(&pbgo.ClientCloseRsq{
+			ctx.Pid.Tell(&pbgo.ClientCloseRsq{
 				Body: []byte(`{"cmd":1,"body":"bad message"}`),
 			})
 			return
