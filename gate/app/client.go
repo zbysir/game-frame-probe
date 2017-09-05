@@ -108,7 +108,7 @@ func (p *ClientContext) SendOrConnServer(serverType string, bs []byte) (err erro
 		// 没连接过 就找到服务, 连接并转发
 		s, ok := stdServerGroups.SelectServer(serverType)
 		if !ok {
-			return errors.New("bad cmd, can't found server")
+			return errors.New("bad cmd, can't found server, serverType:"+serverType)
 		} else {
 			p.ConnedServer[serverType] = s
 			s.Request(&pbgo.ClientConnectReq{Uid: p.Uid}, p.Pid)

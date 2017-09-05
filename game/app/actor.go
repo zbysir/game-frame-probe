@@ -1,13 +1,13 @@
 package app
 
 import (
-	"github.com/bysir-zl/game-frame-probe/common/pbgo"
-	"reflect"
+	"encoding/json"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/bysir-zl/bygo/log"
-	"github.com/bysir-zl/game-frame-probe/common/client_msg"
 	"github.com/bysir-zl/game-frame-probe/common"
-	"encoding/json"
+	"github.com/bysir-zl/game-frame-probe/common/client_msg"
+	"github.com/bysir-zl/game-frame-probe/common/pbgo"
+	"reflect"
 	"time"
 )
 
@@ -62,19 +62,24 @@ func (p *GameActor) Receive(ctx actor.Context) {
 			for {
 				select {
 				case <-t.C:
-					msgs := []string{}
+					msgs := struct {
+						Msg []string `json:"msg"`
+					}{
+						Msg:[]string{},
+					}
+
 					for {
 						select {
 						case msg := <-p.MessageList:
-							msgs = append(msgs, string(msg))
+							msgs.Msg = append(msgs.Msg, string(msg))
 						default:
 							goto end
 						}
 					}
 				end:
-				//if len(msgs) == 0 {
-				//	break
-				//}
+					//if len(msgs) == 0 {
+					//	break
+					//}
 					for _, p := range p.Players {
 						bs, _ := json.Marshal(&msgs)
 						rsp := client_msg.NewProto(common.CMD_Logic, bs)
