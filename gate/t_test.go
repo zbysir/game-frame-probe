@@ -22,7 +22,6 @@ func BenchmarkConn(b *testing.B) {
 		conn.WriteMessage(websocket.BinaryMessage, []byte(`{"cmd":1,"body":"`+iS+`"}`))
 		conn.WriteMessage(websocket.BinaryMessage, []byte(`{"cmd":100,"body":"`+iS+`"}`))
 	}
-
 }
 
 func TestOnline(t *testing.T) {
@@ -80,8 +79,8 @@ func TestConn2(t *testing.T) {
 }
 
 func TestConn1(t *testing.T) {
-	server := "47.94.204.137"
-	//server := "localhost"
+	//server := "47.94.204.137"
+	server := "localhost"
 	d := websocket.DefaultDialer
 
 	conn, _, err := d.Dial("ws://"+server+":8081/", nil)

@@ -2,15 +2,23 @@ syntax = "proto3";
 package pbgo;
 
 // 网关向节点连接
-message AgentConnectReq {
+message GateConnectReq {
 }
 
 // 节点向网关响应
-message AgentConnectRsp {
+message GateConnectRsp {
 }
 
 // 转发到服务器集群
-message AgentForwardToSrv {
+message GateForwardToSrv {
     string ServerType = 1;
     bytes Body = 2;
+}
+
+message GatePing {
+    
+}
+
+message GatePong {
+    
 }

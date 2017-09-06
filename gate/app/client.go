@@ -89,7 +89,7 @@ func (p *ClientContext) DelValue(key string) {
 	return
 }
 
-// 通知节点断开连接
+// 通知节点客户端断开连接
 func (p *ClientContext) Close() {
 	// 通知节点断开连接
 	for _, s := range p.ConnedServer {
@@ -130,6 +130,7 @@ type ClientHandler struct {
 
 func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 	clientPid := actor.Spawn(actor.FromInstance(&ClientActor{Conn: conn}))
+
 	firstMsg := make(chan struct{})
 
 	// 一个请求一个上下文, 用来存储登录信息等
@@ -167,10 +168,20 @@ func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 		ctx.Request = &ClientReq{Body: bs}
 	handle:
 		serverType, should := p.router.RouteClient(ctx)
+		// 一旦有了Uid, 那么Pid应该替换, Pid与Uid一一对应, 实现在客户端重连后在各个服务器保存的Pid还能生效;
+		if ctx.Uid != "" && ctx.Uid != ctx.Pid.Id {
+			ctx.Pid.Stop()
+			ctx.Pid, err = actor.SpawnNamed(actor.FromInstance(&ClientActor{Conn: conn}), "U"+ctx.Uid)
+			if err != nil {
+				log.ErrorT(TAG, "SpawnNamed err:", err)
+				return
+			}
+		}
+
 		if should {
 			err := ctx.SendOrConnServer(serverType, bs)
 			if err != nil {
-				clientPid.Tell(&pbgo.ClientMessageRsp{Body: []byte(err.Error())})
+				ctx.Pid.Tell(&pbgo.ClientMessageRsp{Body: []byte(err.Error())})
 			}
 		}
 		// end
@@ -180,6 +191,7 @@ func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 			return
 		}
 		ctx.Request = &ClientReq{Body: bs}
+
 		goto handle
 	}()
 

@@ -7,16 +7,22 @@ import (
 	"github.com/bysir-zl/game-frame-probe/common/client_msg"
 	"github.com/bysir-zl/game-frame-probe/common"
 	"github.com/bysir-zl/game-frame-probe/common/util"
+	"time"
 )
 
 type GameActorManager struct {
 	// 客户端应该进入哪个Actor, 在通信之前发送消息让manager判断客户端应该加入哪个actor(比如加入某ID游戏局), 在之后的通信就不需要了; 为了down机恢复,需要持久化此字段
 	ClientToActor *util.MapStorage      // uid=>roomId
 	Actors        map[string]*actor.PID // 所有已经生成的actor, name=>pid
+	GatePid       *actor.PID
 }
 
 func (p *GameActorManager) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
+	case *pbgo.GateConnectReq:
+		// gate上线
+		p.GatePid = ctx.Sender()
+
 	case *pbgo.ClientConnectReq:
 		// 在第一次客户端向这个节点发消息的时候会连接这个节点, 
 		// 如果本节点重启后, 也不再有此消息,
@@ -79,6 +85,18 @@ func (p *GameActorManager) Receive(ctx actor.Context) {
 		delete(p.Actors, msg.ActorId)
 	case *actor.Started:
 		p.Recover()
+
+		go func() {
+			for range time.Tick(time.Second * 6) {
+				
+			}
+			// 检查网关状态
+			// 网关死了以后, 网关保存的客户端PID就失效了, 任何Actor的数据发送都会失败, 应当关闭所有actor
+			_, err := p.GatePid.RequestFuture(&pbgo.GatePing{}, time.Second*3).Result()
+			if err != nil {
+				return
+			}
+		}()
 	}
 }
 

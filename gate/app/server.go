@@ -14,6 +14,7 @@ import (
 	"strings"
 	"github.com/bysir-zl/bygo/log"
 	"github.com/bysir-zl/bygo/util/discovery"
+	"github.com/bysir-zl/game-frame-probe/common/pbgo"
 )
 
 const TAG = "agent"
@@ -83,6 +84,9 @@ func OnServerChange(server *discovery.Server, change discovery.ServerChange) {
 		}
 
 		pid := actor.NewPID(serverAddr, id)
+		// 通知gate
+		pid.Request(&pbgo.GateConnectReq{}, stdGatePid)
+
 		serverType := getServerTypeFromId(id)
 		if servers, ok := stdServerGroups[serverType]; ok {
 			servers[id] = &Server{PID: pid}
@@ -107,14 +111,17 @@ func getServerTypeFromId(id string) string {
 	return strings.Split(id, "/")[0]
 }
 
+var stdGatePid *actor.PID
+
 func Run() {
 	router := stdRouter
-	agentPid, err := serverNode(router)
+	gatePid, err := serverNode(router)
 	if err != nil {
 		panic(err)
 	}
+	stdGatePid = gatePid
 
-	serverCli(agentPid, router)
+	serverCli(gatePid, router)
 
 	// 注册服务
 	lease, err := service.Discoverer.RegisterService(&discovery.Server{
