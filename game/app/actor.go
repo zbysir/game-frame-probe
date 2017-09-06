@@ -15,30 +15,40 @@ const frameDuration = time.Second / 10
 
 // 一个房间一个actor
 type GameActor struct {
-	Players     map[string]*Player
-	MessageList chan []byte
+	Id          string
+	players     map[string]*Player
+	messageList chan []byte
+	stopC       chan struct{}
+	manager     *actor.PID
+}
+
+// 当actor关闭应当通知manager
+type ActorStopMsg struct {
+	ActorId string
 }
 
 func (p *GameActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *pbgo.ClientConnectReq:
-		log.InfoT(TAG, "user", msg.Uid, "connected")
-	case *pbgo.ClientDisconnectReq:
-		delete(p.Players, msg.Uid)
-		log.InfoT(TAG, "user", msg.Uid, "disconnected")
-	case *pbgo.ClientMessageReq:
-		// 只要有消息就加入这个列表
-		if _, ok := p.Players[msg.Uid]; !ok {
-			p.Players[msg.Uid] = &Player{
+		if _, ok := p.players[msg.Uid]; !ok {
+			p.players[msg.Uid] = &Player{
 				Uid: msg.Uid,
 				PID: ctx.Sender(),
 			}
 		}
 
+		log.InfoT(TAG, "user", msg.Uid, "connected")
+	case *pbgo.ClientDisconnectReq:
+		delete(p.players, msg.Uid)
+		if len(p.players) == 0 {
+			ctx.Self().Stop()
+		}
+		log.InfoT(TAG, "user", msg.Uid, "disconnected")
+	case *pbgo.ClientMessageReq:
 		pt := client_msg.GetProto(msg.Body)
 		switch pt.Cmd {
 		case common.CMD_JoinRoom:
-			bs, _ := json.Marshal(p.Players)
+			bs, _ := json.Marshal(p.players)
 			rsp := client_msg.NewProto(common.CMD_InitPlayer, bs)
 
 			// 广播有人加入了房间
@@ -56,31 +66,36 @@ func (p *GameActor) Receive(ctx actor.Context) {
 		}
 	case *actor.Started:
 		go func() {
-			log.InfoT(TAG, "started")
+			log.InfoT(TAG, "actor %s started", p.Id)
+			defer func() {
+				log.InfoT(TAG, "actor %s stopped", p.Id)
+			}()
 			t := time.NewTicker(frameDuration)
 			// 发送逻辑帧, 空帧也发
 			for {
 				select {
+				case <-p.stopC:
+					return
 				case <-t.C:
 					msgs := struct {
 						Msg []string `json:"msg"`
 					}{
-						Msg:[]string{},
+						Msg: []string{},
 					}
 
 					for {
 						select {
-						case msg := <-p.MessageList:
+						case msg := <-p.messageList:
 							msgs.Msg = append(msgs.Msg, string(msg))
 						default:
 							goto end
 						}
 					}
 				end:
-					//if len(msgs) == 0 {
-					//	break
-					//}
-					for _, p := range p.Players {
+				//if len(msgs) == 0 {
+				//	break
+				//}
+					for _, p := range p.players {
 						bs, _ := json.Marshal(&msgs)
 						rsp := client_msg.NewProto(common.CMD_Logic, bs)
 						p.Tell(&pbgo.ClientMessageRsp{
@@ -91,6 +106,12 @@ func (p *GameActor) Receive(ctx actor.Context) {
 			}
 			log.InfoT(TAG, "end")
 		}()
+	case *actor.Stopping:
+	case *actor.Stopped:
+		// 通知manager删除自己
+		p.manager.Tell(&ActorStopMsg{ActorId: p.Id})
+		// 关闭循环
+		close(p.stopC)
 	default:
 		log.Info(reflect.TypeOf(msg).String())
 	}
@@ -98,12 +119,15 @@ func (p *GameActor) Receive(ctx actor.Context) {
 
 // 准备广播
 func (p *GameActor) ReadyBroadToPlayer(msg []byte) {
-	p.MessageList <- msg
+	p.messageList <- msg
 }
 
-func NewGameActor() *GameActor {
+func NewGameActor(manager *actor.PID, actorId string) *GameActor {
 	return &GameActor{
-		Players:     map[string]*Player{},
-		MessageList: make(chan []byte, 1000),
+		Id:          actorId,
+		players:     map[string]*Player{},
+		messageList: make(chan []byte, 1000),
+		stopC:       make(chan struct{}, 1),
+		manager:     manager,
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 	"sync"
 	"errors"
+	"sync/atomic"
 )
 
 // 这里实现 client -> gate -> 游戏服务器节点 之间通信
@@ -92,9 +93,9 @@ func (p *ClientContext) DelValue(key string) {
 func (p *ClientContext) Close() {
 	// 通知节点断开连接
 	for _, s := range p.ConnedServer {
-		s.Request(&pbgo.ClientDisconnectReq{Uid: p.Uid},p.Pid)
+		s.Request(&pbgo.ClientDisconnectReq{Uid: p.Uid}, p.Pid)
 	}
-	
+
 	// 通知关闭actor与连接
 	p.Pid.Tell(&pbgo.ClientCloseRsq{Body: []byte("timeout of auth")})
 }
@@ -108,8 +109,9 @@ func (p *ClientContext) SendOrConnServer(serverType string, bs []byte) (err erro
 		// 没连接过 就找到服务, 连接并转发
 		s, ok := stdServerGroups.SelectServer(serverType)
 		if !ok {
-			return errors.New("bad cmd, can't found server, serverType:"+serverType)
+			return errors.New("bad cmd, can't found server, serverType:" + serverType)
 		} else {
+			// 存储服务器, 方便在Client断开的时候通知服务器
 			p.ConnedServer[serverType] = s
 			s.Request(&pbgo.ClientConnectReq{Uid: p.Uid}, p.Pid)
 			s.Request(&pbgo.ClientMessageReq{Uid: p.Uid, Body: bs}, p.Pid)
@@ -120,8 +122,10 @@ func (p *ClientContext) SendOrConnServer(serverType string, bs []byte) (err erro
 }
 
 type ClientHandler struct {
-	agentPid *actor.PID
-	router   *Router
+	agentPid    *actor.PID
+	router      *Router
+	wg          sync.WaitGroup
+	clientCount uint64 // 在线的客户端数量
 }
 
 func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
@@ -150,8 +154,15 @@ func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
 		if err != nil {
 			return
 		}
+
+		p.wg.Add(1)
+		atomic.AddUint64(&p.clientCount, 1)
 		// 关闭连接
-		defer ctx.Close()
+		defer func() {
+			ctx.Close()
+			p.wg.Done()
+			atomic.AddUint64(&p.clientCount, ^uint64(1 - 1))
+		}()
 
 		ctx.Request = &ClientReq{Body: bs}
 	handle:

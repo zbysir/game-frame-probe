@@ -1,4 +1,5 @@
 package app
+
 // 服务器节点
 
 import (
@@ -144,17 +145,25 @@ func serverNode(router *Router) (agentPid *actor.PID, err error) {
 }
 
 func serverCli(agentPid *actor.PID, router *Router) {
-	addr := "127.0.0.1:8081"
+	addr := ":8081"
 
-	cliServer = hubs.New(addr, listener.NewWs(), &ClientHandler{
+	handler := &ClientHandler{
 		agentPid: agentPid,
 		router:   router,
-	})
+	}
+
+	cliServer = hubs.New(addr, listener.NewWs(), handler)
 	log.Info("serverCli started on", addr)
 	go func() {
 		err := cliServer.Run()
 		if err != nil {
 			log.Error("serverCli err", err)
+		}
+	}()
+
+	go func() {
+		for range time.Tick(2 * time.Second) {
+			log.InfoT(TAG, "online client count:", handler.clientCount)
 		}
 	}()
 }

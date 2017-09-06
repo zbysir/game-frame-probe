@@ -38,7 +38,9 @@
 </body>
 
 <script>
-    var ws = new WebSocket("ws://localhost:8081/");
+    var server ='47.94.204.137'
+//    var server ='localhost'
+    var ws = new WebSocket("ws://"+server+":8081/");
     var uid = window.location.hash.substr(1)
     console.log(uid)
 
@@ -69,7 +71,7 @@
                 app.send(1, uid)
             },
             reConn: function () {
-                ws = new WebSocket("ws://localhost:8081/");
+                ws = new WebSocket("ws://"+server+":8081/");
                 ws.onmessage = messageHandle
             }
         }
