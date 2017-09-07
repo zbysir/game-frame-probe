@@ -21,7 +21,7 @@ type GameActor struct {
 	stopC       chan struct{}
 	manager     *actor.PID
 	isPause     bool
-	maxDalTime  int // 最大暂停时间, 超过就关闭房间
+	maxDalTime  int64 // 最大暂停时间, 超过就关闭房间
 }
 
 type ActorPauseMsg struct {
@@ -136,7 +136,7 @@ func (p *GameActor) Receive(ctx actor.Context) {
 
 // 准备广播
 func (p *GameActor) ReadyBroadToPlayer(msg []byte) {
-	if isPause {
+	if p.isPause {
 		return
 	}
 	p.messageList <- msg
