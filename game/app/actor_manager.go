@@ -17,6 +17,11 @@ type GameActorManager struct {
 	GatePid       *actor.PID
 }
 
+// 当actor关闭应当通知manager
+type ActorStopMsg struct {
+	ActorId string
+}
+
 func (p *GameActorManager) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *pbgo.GateConnectReq:
@@ -86,16 +91,34 @@ func (p *GameActorManager) Receive(ctx actor.Context) {
 	case *actor.Started:
 		p.Recover()
 
+		// 检查网关状态
+		// 网关死了以后, 网关保存的客户端PID就失效了, 任何Actor的数据发送都会失败, 应当暂停所有actor
 		go func() {
-			for range time.Tick(time.Second * 6) {
-				
+			nowIsPause := false
+			for {
+				_, err := p.GatePid.RequestFuture(&pbgo.GatePing{}, time.Second*3).Result()
+				if err != nil {
+					if !nowIsPause {
+						nowIsPause = true
+
+						for _, a := range p.Actors {
+							a.Tell(&ActorPauseMsg{IsPause: true})
+						}
+					}
+				} else {
+					if nowIsPause {
+						nowIsPause = false
+
+						for _, a := range p.Actors {
+							a.Tell(&ActorPauseMsg{IsPause: false})
+						}
+					}
+
+				}
+
+				time.Sleep(6 * time.Second)
 			}
-			// 检查网关状态
-			// 网关死了以后, 网关保存的客户端PID就失效了, 任何Actor的数据发送都会失败, 应当关闭所有actor
-			_, err := p.GatePid.RequestFuture(&pbgo.GatePing{}, time.Second*3).Result()
-			if err != nil {
-				return
-			}
+
 		}()
 	}
 }

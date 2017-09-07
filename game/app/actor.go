@@ -20,11 +20,12 @@ type GameActor struct {
 	messageList chan []byte
 	stopC       chan struct{}
 	manager     *actor.PID
+	isPause     bool
+	maxDalTime  int // 最大暂停时间, 超过就关闭房间
 }
 
-// 当actor关闭应当通知manager
-type ActorStopMsg struct {
-	ActorId string
+type ActorPauseMsg struct {
+	IsPause bool
 }
 
 func (p *GameActor) Receive(ctx actor.Context) {
@@ -41,7 +42,7 @@ func (p *GameActor) Receive(ctx actor.Context) {
 	case *pbgo.ClientDisconnectReq:
 		delete(p.players, msg.Uid)
 		if len(p.players) == 0 {
-			ctx.Self().Stop()
+			ctx.Self().Tell(&ActorPauseMsg{IsPause: true})
 		}
 		log.InfoT(TAG, "user", msg.Uid, "disconnected")
 	case *pbgo.ClientMessageReq:
@@ -71,12 +72,27 @@ func (p *GameActor) Receive(ctx actor.Context) {
 				log.InfoT(TAG, "actor %s stopped", p.Id)
 			}()
 			t := time.NewTicker(frameDuration)
+			var pauseStartTime int64 = 0
 			// 发送逻辑帧, 空帧也发
 			for {
 				select {
 				case <-p.stopC:
 					return
 				case <-t.C:
+					if p.isPause {
+						if pauseStartTime == 0 {
+							pauseStartTime = time.Now().Unix()
+						} else {
+							// 超过最大暂停时间就关闭这个actor
+							if time.Now().Unix()-pauseStartTime > p.maxDalTime {
+								ctx.Self().Stop()
+								return
+							}
+						}
+						continue
+					}
+					pauseStartTime = 0
+
 					msgs := struct {
 						Msg []string `json:"msg"`
 					}{
@@ -104,8 +120,9 @@ func (p *GameActor) Receive(ctx actor.Context) {
 					}
 				}
 			}
-			log.InfoT(TAG, "end")
 		}()
+	case *ActorPauseMsg:
+		p.isPause = msg.IsPause
 	case *actor.Stopping:
 	case *actor.Stopped:
 		// 通知manager删除自己
@@ -119,6 +136,9 @@ func (p *GameActor) Receive(ctx actor.Context) {
 
 // 准备广播
 func (p *GameActor) ReadyBroadToPlayer(msg []byte) {
+	if isPause {
+		return
+	}
 	p.messageList <- msg
 }
 
