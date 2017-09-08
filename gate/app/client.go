@@ -16,7 +16,7 @@ import (
 
 type ClientActor struct {
 	// 网络连接
-	Conn conn_wrap.Interface
+	Conn *conn_wrap.Conn
 }
 
 type ClientConnReq struct {
@@ -38,7 +38,7 @@ func (p *ClientActor) Receive(ctx actor.Context) {
 		}
 	case *pbgo.ClientCloseRsq:
 		p.Conn.WriteSync(msg.Body)
-		p.Conn.Close()
+		p.Conn.Close(nil)
 		ctx.Self().Stop()
 	}
 }
@@ -128,7 +128,7 @@ type ClientHandler struct {
 	clientCount uint64 // 在线的客户端数量
 }
 
-func (p *ClientHandler) Server(server *hubs.Server, conn conn_wrap.Interface) {
+func (p *ClientHandler) Server(server *hubs.Server, conn *conn_wrap.Conn) {
 	clientPid := actor.Spawn(actor.FromInstance(&ClientActor{Conn: conn}))
 
 	firstMsg := make(chan struct{})
