@@ -24,6 +24,7 @@
 		GatePong
 		GetServerClientActorReq
 		GetServerClientActorRsp
+		PauseReq
 */
 package pbgo
 
