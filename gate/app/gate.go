@@ -25,6 +25,8 @@ func (p *AgentActor) Receive(ctx actor.Context) {
 	case *actor.Terminated:
 		log.InfoT(TAG, "Terminated", msg, msg.Who, msg.AddressTerminated)
 	case *actor.Started:
+	case *pbgo.GatePing:
+		ctx.Respond(&pbgo.GatePong{})
 
 	default:
 		log.Info(reflect.TypeOf(msg).String())

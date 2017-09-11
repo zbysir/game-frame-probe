@@ -21,7 +21,7 @@ type GameActor struct {
 	stopC       chan struct{}
 	manager     *actor.PID
 	isPause     bool
-	maxDalTime  int64 // 最大暂停时间, 超过就关闭房间
+	maxIdleTime int64 // 最大暂停时间, 超过就关闭这个actor
 }
 
 type ActorPauseMsg struct {
@@ -84,7 +84,7 @@ func (p *GameActor) Receive(ctx actor.Context) {
 							pauseStartTime = time.Now().Unix()
 						} else {
 							// 超过最大暂停时间就关闭这个actor
-							if time.Now().Unix()-pauseStartTime > p.maxDalTime {
+							if time.Now().Unix()-pauseStartTime > p.maxIdleTime {
 								ctx.Self().Stop()
 								return
 							}
@@ -149,5 +149,6 @@ func NewGameActor(manager *actor.PID, actorId string) *GameActor {
 		messageList: make(chan []byte, 1000),
 		stopC:       make(chan struct{}, 1),
 		manager:     manager,
+		maxIdleTime: 60 * 3, // 最多暂停3分钟就关闭这个actor
 	}
 }
