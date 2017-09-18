@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/bysir-zl/hubs/core/net/conn_wrap"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/bysir-zl/game-frame-probe/common/pbgo"
 	"github.com/bysir-zl/bygo/log"
@@ -10,13 +9,14 @@ import (
 	"sync"
 	"errors"
 	"sync/atomic"
+	"github.com/bysir-zl/hubs/core/net/channel"
 )
 
 // 这里实现 client -> gate -> 游戏服务器节点 之间通信
 
 type ClientActor struct {
 	// 网络连接
-	Conn *conn_wrap.Conn
+	Conn *channel.Channel
 }
 
 type ClientConnReq struct {
@@ -128,7 +128,7 @@ type ClientHandler struct {
 	clientCount uint64 // 在线的客户端数量
 }
 
-func (p *ClientHandler) Server(server *hubs.Server, conn *conn_wrap.Conn) {
+func (p *ClientHandler) Server(server *hubs.Server, conn *channel.Channel) {
 	clientPid := actor.Spawn(actor.FromInstance(&ClientActor{Conn: conn}))
 
 	firstMsg := make(chan struct{})
